@@ -1,9 +1,9 @@
 import { mongooseAdapter } from '@payloadcms/db-mongodb'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
+import { autoTranslate } from 'auto-translate'
 import { MongoMemoryReplSet } from 'mongodb-memory-server'
 import path from 'path'
 import { buildConfig } from 'payload'
-import { autoTranslate } from 'auto-translate'
 import sharp from 'sharp'
 import { fileURLToPath } from 'url'
 
@@ -38,7 +38,20 @@ const buildConfigWithMemoryDB = async () => {
     collections: [
       {
         slug: 'posts',
-        fields: [],
+        fields: [
+          {
+            name: 'title',
+            type: 'text',
+            localized: true,
+            required: true,
+          },
+          {
+            name: 'description',
+            type: 'text',
+            localized: true,
+            required: true,
+          },
+        ],
       },
       {
         slug: 'media',
@@ -54,6 +67,20 @@ const buildConfigWithMemoryDB = async () => {
     }),
     editor: lexicalEditor(),
     email: testEmailAdapter,
+    localization: {
+      defaultLocale: 'sv',
+      fallback: true,
+      locales: [
+        {
+          code: 'sv',
+          label: 'Svenska',
+        },
+        {
+          code: 'en',
+          label: 'English',
+        },
+      ],
+    },
     onInit: async (payload) => {
       await seed(payload)
     },

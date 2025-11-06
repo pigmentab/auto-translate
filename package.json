@@ -116,5 +116,7 @@
     ]
   },
   "registry": "https://registry.npmjs.org/",
-  "dependencies": {}
+  "dependencies": {
+    "openai": "^6.8.0"
+  }
 }

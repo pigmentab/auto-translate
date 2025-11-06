@@ -1,9 +1,7 @@
-import { BeforeDashboardClient as BeforeDashboardClient_fc6e7dd366b9e2c8ce77d31252122343 } from 'auto-translate/client'
-import { BeforeDashboardServer as BeforeDashboardServer_c4406fcca100b2553312c5a3d7520a3f } from 'auto-translate/rsc'
+import { BeforeDashboardClient as BeforeDashboardClient_7febb51eff8632ce304537fd31d5e33f } from 'auto-translate/client'
+import { BeforeDashboardServer as BeforeDashboardServer_dd605d730cf6a3557a96f3cca859da2d } from 'auto-translate/rsc'
 
 export const importMap = {
-  'auto-translate/client#BeforeDashboardClient':
-    BeforeDashboardClient_fc6e7dd366b9e2c8ce77d31252122343,
-  'auto-translate/rsc#BeforeDashboardServer':
-    BeforeDashboardServer_c4406fcca100b2553312c5a3d7520a3f,
+  "auto-translate/client#BeforeDashboardClient": BeforeDashboardClient_7febb51eff8632ce304537fd31d5e33f,
+  "auto-translate/rsc#BeforeDashboardServer": BeforeDashboardServer_dd605d730cf6a3557a96f3cca859da2d
 }
