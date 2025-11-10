@@ -211,17 +211,21 @@ The plugin tracks field exclusions per document, per locale, per field path. Thi
 ```
 1. User edits document in DEFAULT language (e.g., Swedish)
    ↓
-2. User saves document
+2. User saves/publishes document
    ↓
 3. Plugin checks if translationSync is enabled
    ↓
-4. For each SECONDARY language (e.g., English, German):
+4. Plugin checks if document is published (skips drafts/autosaves)
+   ↓
+5. For each SECONDARY language (e.g., English, German):
    a. Fetch field-level exclusions for that language
    b. Remove excluded fields from translation payload
    c. Translate remaining fields using OpenAI
    d. Merge translated data with existing, preserving excluded fields
    e. Save translated document in that language
 ```
+
+> **📝 Note**: When using Payload's drafts feature with autosave enabled, translations only trigger when you explicitly **publish** the document, not during autosave operations. This prevents unnecessary translation costs and API calls.
 
 ### Field Exclusion Logic
 

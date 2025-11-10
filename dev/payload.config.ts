@@ -68,6 +68,11 @@ const buildConfigWithMemoryDB = async () => {
             localized: true,
           },
         ],
+        versions: {
+          drafts: {
+            autosave: true,
+          },
+        },
       },
       {
         slug: 'media',

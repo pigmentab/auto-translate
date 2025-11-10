@@ -2,6 +2,54 @@
 
 All notable changes to the Auto-Translate plugin will be documented in this file.
 
+## [1.0.1] - 2025-11-07
+
+### 🐛 Bug Fixes
+
+- **Fixed autosave triggering translations**: Translations now only trigger when explicitly publishing documents, not during autosave operations
+  - Added `_status` check to skip draft saves
+  - Prevents unnecessary API calls and costs during autosave
+  - Only translates when `doc._status === 'published'` or when drafts are disabled
+
+- **Fixed TranslationControl showing in default locale**: Lock button now only appears in secondary locales
+  - Added check to hide component when `currentLocale === defaultLocale`
+  - Exclusions in default locale had no effect on translations anyway
+  - Makes the UI clearer - you can only lock translations in target locales
+  - Pass `defaultLocale` prop to TranslationControl component
+
+### ✨ Improvements
+
+- **Enhanced TranslationControl component with detailed logging**:
+  - Added console logs to help debug exclusion behavior
+  - Added locale verification checks when loading/saving exclusions
+  - Improved error messages and warnings for locale mismatches
+  - Better visibility into what exclusions are being loaded/saved per locale
+
+- **Improved translation-exclusions collection UI**:
+  - Added clear description emphasizing per-locale nature
+  - Made collection/documentId/locale fields visible in sidebar
+  - Added "group: Settings" for better organization
+  - Added helpful field descriptions
+  - Improved default columns in list view
+
+### 📚 Documentation
+
+- Updated README with note about drafts/autosave behavior
+- Added "Drafts and Autosave Behavior" section to ARCHITECTURE.md
+- Updated translation flow diagram to include status check
+- **New: PER_LOCALE_EXCLUSIONS.md** - Comprehensive guide to per-locale exclusion system
+  - Explains how exclusions are stored independently per locale
+  - Debugging guide with console log examples
+  - Troubleshooting common issues
+  - Test scripts to verify per-locale behavior
+- **New: DEFAULT_LOCALE_EXCLUSIONS.md** - Explains why lock buttons only appear in secondary locales
+  - Visual guide showing UI differences between default and secondary locales
+  - Technical explanation of translation flow
+  - Common questions and best practices
+  - Clarifies that exclusions control TARGET locales, not source
+
+---
+
 ## [1.0.0] - 2025-11-05
 
 ### 🎉 Initial Release

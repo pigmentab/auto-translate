@@ -2,22 +2,9 @@ import type { Payload } from 'payload'
 
 import OpenAI from 'openai'
 
-import type { AutoTranslateConfig, TranslateOptions, TranslationSettings } from '../types/index.js'
+import type { AutoTranslateConfig, TranslateOptions } from '../types/index.js'
 
 import { filterExcludedPaths } from '../utilities/fieldHelpers.js'
-
-const DEFAULT_SETTINGS: TranslationSettings = {
-  model: 'gpt-4o',
-  systemPrompt: `You are a professional translator. Translate the JSON object values from {fromLocale} to {toLocale}.`,
-  temperature: 0.3,
-  translationRules: `Rules:
-- Only translate the values, never the keys
-- Preserve the exact JSON structure
-- Do not translate field names like 'id', 'createdAt', 'updatedAt', etc.
-- Maintain formatting, HTML tags, and special characters
-- Return only valid JSON without any markdown formatting or code blocks
-- If a value is already in the target language or is a proper noun, keep it as is`,
-}
 
 export class TranslationService {
   private client?: OpenAI
@@ -48,64 +35,24 @@ export class TranslationService {
   }
 
   /**
-   * Fetches translation settings from the global with fallback to defaults
-   */
-  private async getTranslationSettings(payload: Payload): Promise<TranslationSettings> {
-    const settingsSlug = this.config.translationSettingsSlug || 'translation-settings'
-
-    try {
-      const settings = await payload.findGlobal({
-        slug: settingsSlug,
-      })
-
-      if (settings) {
-        return {
-          maxTokens: settings.maxTokens,
-          model: settings.model || DEFAULT_SETTINGS.model,
-          systemPrompt: settings.systemPrompt || DEFAULT_SETTINGS.systemPrompt,
-          temperature: settings.temperature ?? DEFAULT_SETTINGS.temperature,
-          translationRules: settings.translationRules || DEFAULT_SETTINGS.translationRules,
-        }
-      }
-    } catch (error) {
-      if (this.config.debugging) {
-        payload.logger.warn(
-          `[Auto-Translate] Could not fetch settings from global, using defaults: ${error}`,
-        )
-      }
-    }
-
-    return DEFAULT_SETTINGS
-  }
-
-  /**
    * Translates using OpenAI API
    */
-  private async translateWithOpenAI(
-    data: any,
-    fromLocale: string,
-    toLocale: string,
-    payload: Payload,
-  ): Promise<any> {
+  private async translateWithOpenAI(data: any, fromLocale: string, toLocale: string): Promise<any> {
     const client = this.getOpenAIClient()
-    const settings = await this.getTranslationSettings(payload)
-
-    // Use provider model override if specified, otherwise use settings model
-    const model = this.config.provider?.model || settings.model
-
-    // Replace placeholders in system prompt and combine with rules
-    const mainPrompt = settings.systemPrompt
-      .replace(/\{fromLocale\}/g, fromLocale)
-      .replace(/\{toLocale\}/g, toLocale)
-
-    const fullPrompt = `${mainPrompt}
-${settings.translationRules}`
+    const model = this.config.provider?.model || 'gpt-4o'
 
     try {
-      const completionOptions: any = {
+      const response = await client.chat.completions.create({
         messages: [
           {
-            content: fullPrompt,
+            content: `You are a professional translator. Translate the JSON object values from ${fromLocale} to ${toLocale}. 
+            Rules:
+            - Only translate the values, never the keys
+            - Preserve the exact JSON structure
+            - Do not translate field names like 'id', 'createdAt', 'updatedAt', etc.
+            - Maintain formatting, HTML tags, and special characters
+            - Return only valid JSON without any markdown formatting or code blocks
+            - If a value is already in the target language or is a proper noun, keep it as is`,
             role: 'system',
           },
           {
@@ -115,15 +62,8 @@ ${settings.translationRules}`
         ],
         model,
         response_format: { type: 'json_object' },
-        temperature: settings.temperature,
-      }
-
-      // Add maxTokens only if specified
-      if (settings.maxTokens) {
-        completionOptions.max_tokens = settings.maxTokens
-      }
-
-      const response = await client.chat.completions.create(completionOptions)
+        temperature: 0.3,
+      })
 
       const translatedText = response.choices[0]?.message?.content
 
@@ -212,7 +152,7 @@ ${settings.translationRules}`
     }
 
     // Use OpenAI by default
-    return await this.translateWithOpenAI(dataToTranslate, fromLocale, toLocale, payload)
+    return await this.translateWithOpenAI(dataToTranslate, fromLocale, toLocale)
   }
 
   /**

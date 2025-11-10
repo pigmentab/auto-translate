@@ -352,8 +352,9 @@ afterChange hook (our plugin)
 │                                     │
 │ 1. Check operation (create/update)  │
 │ 2. Check locale (must be default)   │
-│ 3. Check translationSync flag       │
-│ 4. For each secondary locale:       │
+│ 3. Check _status (skip drafts)      │
+│ 4. Check translationSync flag       │
+│ 5. For each secondary locale:       │
 │    ├─ Get exclusions from DB       │
 │    ├─ Filter excluded paths        │
 │    ├─ Call translation service     │
@@ -367,7 +368,45 @@ Other afterChange hooks (if any)
 Response to client
 ```
 
-**Important**: Updates triggered by the plugin include `context.skipAutoTranslate` to prevent infinite loops.
+**Important**: 
+- Updates triggered by the plugin include `context.skipAutoTranslate` to prevent infinite loops.
+- When using Payload's drafts feature, translations only trigger when documents are **published** (when `_status === 'published'`). This prevents unnecessary translation costs during autosave operations or draft saves.
+
+---
+
+## Drafts and Autosave Behavior
+
+When Payload's drafts feature is enabled with autosave:
+
+```typescript
+versions: {
+  drafts: {
+    autosave: true,
+  },
+}
+```
+
+The plugin intelligently handles document status:
+
+| Document Status | Translation Triggered? | Reason |
+|----------------|------------------------|---------|
+| `draft` | ❌ No | Prevents unnecessary API calls during autosave |
+| `published` | ✅ Yes | Only translate when explicitly publishing |
+| No drafts (direct save) | ✅ Yes | Normal translation flow |
+
+**Implementation**:
+```typescript
+// In afterChange hook
+if (doc._status && doc._status !== 'published') {
+  // Skip translation for drafts
+  return doc
+}
+```
+
+This ensures:
+- **Cost efficiency**: No unnecessary translation API calls during autosave
+- **Performance**: Faster autosave operations
+- **User control**: Translations only happen when ready to publish
 
 ---
 

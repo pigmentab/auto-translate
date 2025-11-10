@@ -43,9 +43,9 @@ export type AutoTranslateConfig = {
   translationExclusionsSlug?: string
 
   /**
-   * Global slug for storing translation settings
+   * Auto-inject translation control UI into all localized fields (default: true)
    */
-  translationSettingsSlug?: string
+  autoInjectUI?: boolean
 }
 
 export type CollectionTranslateConfig = {
@@ -83,13 +83,5 @@ export type FieldPath = {
   path: string
   value: any
   parentPath?: string
-}
-
-export type TranslationSettings = {
-  systemPrompt: string
-  translationRules: string
-  model: string
-  temperature: number
-  maxTokens?: number
 }
 

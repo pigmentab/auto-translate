@@ -1,6 +1,6 @@
 {
   "name": "@pigment/auto-translate",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Automatic translation plugin for Payload CMS with field-level exclusion controls",
   "keywords": [
     "payload",

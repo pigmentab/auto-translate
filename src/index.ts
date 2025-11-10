@@ -3,9 +3,8 @@ import type { Config } from 'payload'
 import type { AutoTranslateConfig } from './types/index.js'
 
 import { getTranslationExclusionsCollection } from './collections/translationExclusions.js'
-import { getExclusionStatus, toggleExclusion } from './endpoints/translationExclusionsEndpoint.js'
-import { getTranslationSettingsGlobal } from './globals/translationSettings.js'
 import { TranslationService } from './services/translationService.js'
+import { injectTranslationControls } from './utilities/injectTranslationControls.js'
 
 export * from './types/index.js'
 
@@ -41,33 +40,8 @@ export const autoTranslate =
     const exclusionsSlug = pluginOptions.translationExclusionsSlug || 'translation-exclusions'
     config.collections.push(getTranslationExclusionsCollection(exclusionsSlug))
 
-    // Add translation settings global
-    if (!config.globals) {
-      config.globals = []
-    }
-    const settingsSlug = pluginOptions.translationSettingsSlug || 'translation-settings'
-    config.globals.push(getTranslationSettingsGlobal(settingsSlug))
-
     // Initialize translation service
     const translationService = new TranslationService(pluginOptions)
-
-    // Add translation endpoints
-    if (!config.endpoints) {
-      config.endpoints = []
-    }
-
-    config.endpoints.push(
-      {
-        handler: getExclusionStatus,
-        method: 'get',
-        path: '/translation-exclusions',
-      },
-      {
-        handler: toggleExclusion,
-        method: 'post',
-        path: '/translation-exclusions/toggle',
-      },
-    )
 
     // Configure collections with auto-translate
     if (pluginOptions.collections) {
@@ -102,6 +76,15 @@ export const autoTranslate =
           label: 'Enable Auto-Translation',
         })
 
+        // Auto-inject TranslationControl component into all localized fields
+        if (pluginOptions.autoInjectUI !== false) {
+          collection.fields = injectTranslationControls(collection.fields, defaultLocale)
+
+          if (pluginOptions.debugging) {
+            console.log(`[Auto-Translate Plugin] Auto-injected UI controls for: ${collectionSlug}`)
+          }
+        }
+
         // Add hooks for translation
         if (!collection.hooks) {
           collection.hooks = {}
@@ -123,6 +106,17 @@ export const autoTranslate =
             if (pluginOptions.debugging) {
               req.payload.logger.info(
                 `[Auto-Translate Plugin] Skipping translation - not default locale (current: ${req.locale}, default: ${defaultLocale})`,
+              )
+            }
+            return doc
+          }
+
+          // Skip translation for drafts when autosave is enabled
+          // Only translate when document is published
+          if (doc._status && doc._status !== 'published') {
+            if (pluginOptions.debugging) {
+              req.payload.logger.info(
+                `[Auto-Translate Plugin] Skipping translation - document is a draft (status: ${doc._status})`,
               )
             }
             return doc
