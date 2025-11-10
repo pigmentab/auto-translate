@@ -27,26 +27,26 @@ export const seed = async (payload: Payload): Promise<boolean> => {
   const testPost = await payload.create({
     collection: 'posts',
     data: {
-      title: 'Välkommen till vår blogg',
-      description: {
-        root: {
-          children: [
-            {
-              children: [
-                {
-                  text: 'Detta är en exempelpost för att testa auto-översättning.',
-                },
-              ],
-              type: 'paragraph',
-            },
-          ],
-        },
-      },
       content: [
         {
           title: 'Introduktion',
         },
       ],
+      description: {
+        root: {
+          children: [
+            {
+              type: 'paragraph',
+              children: [
+                {
+                  text: 'Detta är en exempelpost för att testa auto-översättning.',
+                },
+              ],
+            },
+          ],
+        },
+      },
+      title: 'Välkommen till vår blogg',
       translationSync: true,
     },
     locale: 'sv',
@@ -54,16 +54,16 @@ export const seed = async (payload: Payload): Promise<boolean> => {
 
   payload.logger.info(`✅ Created test post: ${testPost.id}`)
   payload.logger.info('🌐 Auto-translation should have created English version')
-  
+
   // Verify English version was created
   try {
     const englishPost = await payload.findByID({
-      collection: 'posts',
       id: testPost.id,
-      locale: 'en',
+      collection: 'posts',
       fallbackLocale: false,
+      locale: 'en',
     })
-    
+
     payload.logger.info(`✅ English version found: "${englishPost.title}"`)
   } catch (error) {
     payload.logger.error('❌ English version not found - check OPENAI_API_KEY')

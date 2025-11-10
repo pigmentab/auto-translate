@@ -32,7 +32,7 @@ export const getTranslationSettingsGlobal = (
       type: 'textarea',
       admin: {
         description:
-          '⚠️ Do not edit if you don\'t know what you are doing. These rules ensure proper JSON translation behavior.',
+          "⚠️ Do not edit if you don't know what you are doing. These rules ensure proper JSON translation behavior.",
         rows: 8,
       },
       defaultValue: `Rules:
@@ -81,4 +81,3 @@ export const getTranslationSettingsGlobal = (
   ],
   label: 'Translation Settings',
 })
-

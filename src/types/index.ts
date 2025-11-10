@@ -2,14 +2,14 @@ import type { CollectionSlug, Payload } from 'payload'
 
 export type AutoTranslateConfig = {
   /**
+   * Auto-inject translation control UI into all localized fields (default: true)
+   */
+  autoInjectUI?: boolean
+
+  /**
    * List of collections to enable auto-translation
    */
   collections?: Partial<Record<CollectionSlug, boolean | CollectionTranslateConfig>>
-
-  /**
-   * Disable the plugin entirely
-   */
-  disabled?: boolean
 
   /**
    * Show debug logs
@@ -17,20 +17,16 @@ export type AutoTranslateConfig = {
   debugging?: boolean
 
   /**
-   * Translation provider settings
+   * Disable the plugin entirely
    */
-  provider?: {
-    type: 'openai' | 'custom'
-    model?: string
-    apiKey?: string
-    baseURL?: string
-    customTranslate?: (options: TranslateOptions) => Promise<any>
-  }
+  disabled?: boolean
 
   /**
-   * Fields to exclude from translation globally
+   * Enable deduplication of identical strings (default: true)
+   * When enabled, identical strings are only translated once and reused
+   * This significantly speeds up translation for documents with repeated content
    */
-  excludeFields?: string[]
+  enableDeduplication?: boolean
 
   /**
    * Enable translation sync by default
@@ -38,14 +34,38 @@ export type AutoTranslateConfig = {
   enableTranslationSyncByDefault?: boolean
 
   /**
+   * Fields to exclude from translation globally
+   */
+  excludeFields?: string[]
+
+  /**
+   * Minimum string length to translate (default: 3)
+   * Strings shorter than this (after trimming) will be skipped
+   * This helps avoid translating single characters, dashes, spaces, etc.
+   */
+  minStringLength?: number
+
+  /**
+   * Use optimized translation that extracts only translatable strings (default: true)
+   * This dramatically reduces API payload size and improves translation speed for large documents
+   */
+  optimizeTranslation?: boolean
+
+  /**
+   * Translation provider settings
+   */
+  provider?: {
+    apiKey?: string
+    baseURL?: string
+    customTranslate?: (options: TranslateOptions) => Promise<any>
+    model?: string
+    type: 'custom' | 'openai'
+  }
+
+  /**
    * Collection slug for storing translation exclusions metadata
    */
   translationExclusionsSlug?: string
-
-  /**
-   * Auto-inject translation control UI into all localized fields (default: true)
-   */
-  autoInjectUI?: boolean
 }
 
 export type CollectionTranslateConfig = {
@@ -61,27 +81,26 @@ export type CollectionTranslateConfig = {
 }
 
 export type TranslateOptions = {
-  data: any
-  fromLocale: string
-  toLocale: string
-  excludedPaths?: string[]
-  payload: Payload
   collection: CollectionSlug
+  data: any
+  excludedPaths?: string[]
+  fromLocale: string
+  payload: Payload
+  toLocale: string
 }
 
 export type TranslationExclusion = {
-  id?: string
   collection: CollectionSlug
-  documentId: string
-  locale: string
-  excludedPaths: string[] // Field paths like 'title', 'content.0.description'
   createdAt?: string
+  documentId: string
+  excludedPaths: string[] // Field paths like 'title', 'content.0.description'
+  id?: string
+  locale: string
   updatedAt?: string
 }
 
 export type FieldPath = {
+  parentPath?: string
   path: string
   value: any
-  parentPath?: string
 }
-

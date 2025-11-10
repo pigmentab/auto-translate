@@ -39,7 +39,7 @@ The Auto-Translate plugin is built with a modular, extensible architecture inspi
 
                               │
                               v
-                              
+
 ┌─────────────────────────────────────────────────────────────┐
 │                   Runtime Flow (on save)                     │
 │                                                              │
@@ -102,6 +102,7 @@ src/
 **Responsibility**: Configure Payload CMS
 
 **Key Actions**:
+
 - Validates localization config
 - Adds `translation-exclusions` collection
 - Registers API endpoints
@@ -111,6 +112,7 @@ src/
 - Returns modified config
 
 **Code Flow**:
+
 ```typescript
 autoTranslate(pluginOptions) → (config) → {
   1. Validate localization exists
@@ -134,19 +136,20 @@ autoTranslate(pluginOptions) → (config) → {
 class TranslationService {
   // Main translation method
   async translate(options: TranslateOptions): Promise<any>
-  
+
   // Get exclusions for a document/locale
   async getExclusions(payload, collection, docId, locale): Promise<string[]>
-  
+
   // Update exclusions
   async updateExclusions(payload, collection, docId, locale, paths): Promise<void>
-  
+
   // Get config-level exclusions
   getConfigExcludedFields(collection): string[]
 }
 ```
 
 **Translation Flow**:
+
 ```
 Input: { data, fromLocale, toLocale, excludedPaths }
   ↓
@@ -182,6 +185,7 @@ setValueAtPath(obj, path, value): void
 ```
 
 **Path Handling**:
+
 ```
 Simple field:        'title'
 Nested field:        'seo.metaDescription'
@@ -194,6 +198,7 @@ Nested array:        'sections.1.items.0.text'
 **Responsibility**: Provide field-level UI for locking translations
 
 **Key Features**:
+
 - Only shows on secondary locales
 - Only shows when document has ID (not on create)
 - Loads exclusion state from API
@@ -201,6 +206,7 @@ Nested array:        'sections.1.items.0.text'
 - Shows visual feedback (🌐 vs 🔒)
 
 **State Flow**:
+
 ```
 Component Mount
   ↓
@@ -238,19 +244,22 @@ POST /api/translation-exclusions/toggle
 **Responsibility**: Store field-level exclusion metadata
 
 **Schema**:
+
 ```typescript
 {
-  collection: string        // e.g., 'posts'
-  documentId: string        // e.g., '507f1f77bcf86cd799439011'
-  locale: string            // e.g., 'en'
-  excludedPaths: [          // Array of paths
+  collection: string // e.g., 'posts'
+  documentId: string // e.g., '507f1f77bcf86cd799439011'
+  locale: string // e.g., 'en'
+  excludedPaths: [
+    // Array of paths
     { path: 'title' },
-    { path: 'content.0.description' }
+    { path: 'content.0.description' },
   ]
 }
 ```
 
 **Indexes**:
+
 - Unique index on `(collection, documentId, locale)`
 
 ---
@@ -314,7 +323,7 @@ Result: Title is now locked in English
 ```
 1. User updates Swedish post
    PATCH /api/posts/123?locale=sv
-   data: { 
+   data: {
      title: 'Ny titel',      // Changed
      content: 'Ny text'      // Changed
    }
@@ -368,7 +377,8 @@ Other afterChange hooks (if any)
 Response to client
 ```
 
-**Important**: 
+**Important**:
+
 - Updates triggered by the plugin include `context.skipAutoTranslate` to prevent infinite loops.
 - When using Payload's drafts feature, translations only trigger when documents are **published** (when `_status === 'published'`). This prevents unnecessary translation costs during autosave operations or draft saves.
 
@@ -388,13 +398,14 @@ versions: {
 
 The plugin intelligently handles document status:
 
-| Document Status | Translation Triggered? | Reason |
-|----------------|------------------------|---------|
-| `draft` | ❌ No | Prevents unnecessary API calls during autosave |
-| `published` | ✅ Yes | Only translate when explicitly publishing |
-| No drafts (direct save) | ✅ Yes | Normal translation flow |
+| Document Status         | Translation Triggered? | Reason                                         |
+| ----------------------- | ---------------------- | ---------------------------------------------- |
+| `draft`                 | ❌ No                  | Prevents unnecessary API calls during autosave |
+| `published`             | ✅ Yes                 | Only translate when explicitly publishing      |
+| No drafts (direct save) | ✅ Yes                 | Normal translation flow                        |
 
 **Implementation**:
+
 ```typescript
 // In afterChange hook
 if (doc._status && doc._status !== 'published') {
@@ -404,6 +415,7 @@ if (doc._status && doc._status !== 'published') {
 ```
 
 This ensures:
+
 - **Cost efficiency**: No unnecessary translation API calls during autosave
 - **Performance**: Faster autosave operations
 - **User control**: Translations only happen when ready to publish
@@ -437,9 +449,11 @@ translateWithOpenAI(data, fromLocale, toLocale) {
 ```
 
 **OpenAI Prompt**:
+
 ```
 System: You are a professional translator.
         Translate JSON values from {fromLocale} to {toLocale}.
         Rules: ...
 
 User:   { "title": "Hej", "content": "..." }
+```

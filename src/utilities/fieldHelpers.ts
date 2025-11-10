@@ -1,4 +1,5 @@
 import type { Field } from 'payload'
+
 import type { FieldPath } from '../types/index.js'
 
 /**
@@ -32,9 +33,9 @@ export function extractFieldPaths(
 
     // Add current field
     paths.push({
+      parentPath,
       path: currentPath,
       value,
-      parentPath,
     })
 
     // Recursively process nested objects
@@ -211,7 +212,9 @@ export function getLocalizedFieldPaths(fields: Field[], parentPath: string = '')
   const paths: string[] = []
 
   for (const field of fields) {
-    if (!('name' in field)) continue
+    if (!('name' in field)) {
+      continue
+    }
 
     const fieldPath = parentPath ? `${parentPath}.${field.name}` : field.name
 

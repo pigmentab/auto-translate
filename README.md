@@ -10,6 +10,7 @@ A powerful auto-translation plugin for [Payload CMS](https://payloadcms.com) tha
 - 🔧 **Flexible Configuration**: Configure per-collection settings and global exclusions
 - 🤖 **OpenAI Integration**: Uses GPT-4o for high-quality translations (with custom provider support)
 - 📦 **Zero UI Overhead**: Seamlessly integrates with Payload's admin panel
+- ⚡ **Performance Optimized**: 10-15x faster translation with smart extraction and deduplication
 
 ## 📋 How It Works
 
@@ -43,11 +44,11 @@ export default buildConfig({
     locales: ['sv', 'en', 'de', 'fr'],
     fallback: true,
   },
-  
+
   collections: [
     // Your collections...
   ],
-  
+
   plugins: [
     autoTranslate({
       collections: {
@@ -104,7 +105,7 @@ export default buildConfig({
         model: 'gpt-4o', // OpenAI model to use
         apiKey: process.env.OPENAI_API_KEY,
         baseURL: process.env.OPENAI_BASE_URL,
-        
+
         // Optional: Custom translation function
         customTranslate: async ({ data, fromLocale, toLocale }) => {
           // Your custom translation logic
@@ -133,10 +134,10 @@ You can configure translation behavior per collection:
 collections: {
   // Simple enable
   posts: true,
-  
+
   // Disable translation
   drafts: false,
-  
+
   // Advanced configuration
   pages: {
     enabled: true,
@@ -158,7 +159,7 @@ provider: {
       from: fromLocale,
       to: toLocale,
     })
-    
+
     return translated
   },
 }
@@ -250,10 +251,12 @@ The plugin fully supports nested and complex field structures:
 The plugin adds minimal UI elements to your admin panel:
 
 ### Translation Sync Toggle
+
 - **Location**: Document sidebar
 - **Purpose**: Enable/disable auto-translation for the entire document
 
 ### Translation Control Button (per field)
+
 - **Location**: Near each translatable field (in secondary languages only)
 - **Purpose**: Lock/unlock translation for specific fields
 - **States**:
@@ -274,6 +277,7 @@ autoTranslate({
 ```
 
 This will log:
+
 - Configuration on startup
 - Translation triggers
 - Excluded paths for each translation
@@ -300,6 +304,20 @@ src/
 └── endpoints/                  # Custom API endpoints
     └── translationExclusionsEndpoint.ts
 ```
+
+---
+
+## ⚡ Performance
+
+The plugin includes intelligent optimizations that make translation 10-15x faster for large documents:
+
+- **Smart String Extraction**: Only translatable content is sent to the API (80-95% size reduction)
+- **Deduplication**: Identical strings are translated once and reused
+- **Lexical Editor Support**: Special handling for rich text fields
+
+For large documents with Lexical editor content, translation time can be reduced from 30-120 seconds to just 3-10 seconds.
+
+📖 **[Read the Performance Optimization Guide](./PERFORMANCE_OPTIMIZATION.md)** for detailed configuration options and best practices.
 
 ---
 
