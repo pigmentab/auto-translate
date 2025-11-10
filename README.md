@@ -1,218 +1,359 @@
-# Payload Plugin Template
+# Payload CMS Auto-Translate Plugin
 
-A template repo to create a [Payload CMS](https://payloadcms.com) plugin.
+A powerful auto-translation plugin for [Payload CMS](https://payloadcms.com) that automatically translates content from your default language to secondary languages with field-level translation control.
 
-Payload is built with a robust infrastructure intended to support Plugins with ease. This provides a simple, modular, and reusable way for developers to extend the core capabilities of Payload.
+## ✨ Features
 
-To build your own Payload plugin, all you need is:
+- 🌍 **One-Way Auto-Translation**: Automatically translates content from default language to secondary languages
+- 🔒 **Field-Level Exclusion**: Toggle "do not translate" on specific fields in secondary languages
+- 🎯 **Smart Translation**: Preserves excluded fields when updating default language content
+- 🔧 **Flexible Configuration**: Configure per-collection settings and global exclusions
+- 🤖 **OpenAI Integration**: Uses GPT-4o for high-quality translations (with custom provider support)
+- 📦 **Zero UI Overhead**: Seamlessly integrates with Payload's admin panel
 
-- An understanding of the basic Payload concepts
-- And some JavaScript/Typescript experience
+## 📋 How It Works
 
-## Background
+1. Create or edit a post in your **default language** (e.g., Swedish)
+2. Save the document - it automatically translates to all secondary languages (e.g., English)
+3. Switch to a secondary language and mark specific fields as "translation locked" 🔒
+4. Future updates to those fields in the default language won't overwrite your custom translations
 
-Here is a short recap on how to integrate plugins with Payload, to learn more visit the [plugin overview page](https://payloadcms.com/docs/plugins/overview).
+## 🚀 Installation
 
-### How to install a plugin
+```bash
+npm install auto-translate
+# or
+pnpm add auto-translate
+# or
+yarn add auto-translate
+```
 
-To install any plugin, simply add it to your payload.config() in the Plugin array.
+## ⚙️ Configuration
 
-```ts
-import myPlugin from 'my-plugin'
+### Basic Setup
 
-export const config = buildConfig({
+```typescript
+import { autoTranslate } from 'auto-translate'
+import { buildConfig } from 'payload'
+
+export default buildConfig({
+  // Your localization config is required
+  localization: {
+    defaultLocale: 'sv',
+    locales: ['sv', 'en', 'de', 'fr'],
+    fallback: true,
+  },
+  
+  collections: [
+    // Your collections...
+  ],
+  
   plugins: [
-    // You can pass options to the plugin
-    myPlugin({
-      enabled: true,
+    autoTranslate({
+      collections: {
+        posts: true,
+        pages: true,
+      },
     }),
   ],
 })
 ```
 
-### Initialization
+### Environment Variables
 
-The initialization process goes in the following order:
+Create a `.env` file in your project root:
 
-1. Incoming config is validated
-2. **Plugins execute**
-3. Default options are integrated
-4. Sanitization cleans and validates data
-5. Final config gets initialized
+```bash
+# Required for OpenAI translation
+OPENAI_API_KEY=your-openai-api-key
 
-## Building the Plugin
-
-When you build a plugin, you are purely building a feature for your project and then abstracting it outside of the project.
-
-### Template Files
-
-In the Payload [plugin template](https://github.com/payloadcms/payload/tree/main/templates/plugin), you will see a common file structure that is used across all plugins:
-
-1. root folder
-2. /src folder
-3. /dev folder
-
-#### Root
-
-In the root folder, you will see various files that relate to the configuration of the plugin. We set up our environment in a similar manner in Payload core and across other projects, so hopefully these will look familiar:
-
-- **README**.md\* - This contains instructions on how to use the template. When you are ready, update this to contain instructions on how to use your Plugin.
-- **package**.json\* - Contains necessary scripts and dependencies. Overwrite the metadata in this file to describe your Plugin.
-- .**eslint**.config.js - Eslint configuration for reporting on problematic patterns.
-- .**gitignore** - List specific untracked files to omit from Git.
-- .**prettierrc**.json - Configuration for Prettier code formatting.
-- **tsconfig**.json - Configures the compiler options for TypeScript
-- .**swcrc** - Configuration for SWC, a fast compiler that transpiles and bundles TypeScript.
-- **vitest**.config.js - Config file for Vitest, defining how tests are run and how modules are resolved
-
-**IMPORTANT\***: You will need to modify these files.
-
-#### Dev
-
-In the dev folder, you’ll find a basic payload project, created with `npx create-payload-app` and the blank template.
-
-**IMPORTANT**: Make a copy of the `.env.example` file and rename it to `.env`. Update the `DATABASE_URI` to match the database you are using and your plugin name. Update `PAYLOAD_SECRET` to a unique string.
-**You will not be able to run `pnpm/yarn dev` until you have created this `.env` file.**
-
-`myPlugin` has already been added to the `payload.config()` file in this project.
-
-```ts
-plugins: [
-  myPlugin({
-    collections: {
-      posts: true,
-    },
-  }),
-]
+# Optional: Custom OpenAI endpoint
+OPENAI_BASE_URL=https://api.openai.com/v1
 ```
 
-Later when you rename the plugin or add additional options, **make sure to update it here**.
+> **⚠️ Important:** Restart your server after updating `.env` or plugin settings.
 
-You may wish to add collections or expand the test project depending on the purpose of your plugin. Just make sure to keep this dev environment as simplified as possible - users should be able to install your plugin without additional configuration required.
+---
 
-When you’re ready to start development, initiate the project with `pnpm/npm/yarn dev` and pull up [http://localhost:3000](http://localhost:3000) in your browser.
+## 🔧 Advanced Configuration
 
-#### Src
+### Full Configuration Options
 
-Now that we have our environment setup and we have a dev project ready to - it’s time to build the plugin!
+```typescript
+import { autoTranslate } from 'auto-translate'
 
-**index.ts**
+export default buildConfig({
+  plugins: [
+    autoTranslate({
+      // Enable auto-translate for specific collections
+      collections: {
+        posts: true,
+        pages: {
+          enabled: true,
+          // Exclude specific fields from translation in this collection
+          excludeFields: ['slug', 'author'],
+        },
+      },
 
-The essence of a Payload plugin is simply to extend the payload config - and that is exactly what we are doing in this file.
+      // Optional: Show debug logs
+      debugging: false,
 
-```ts
-export const myPlugin =
-  (pluginOptions: MyPluginConfig) =>
-  (config: Config): Config => {
-    // do cool stuff with the config here
+      // Optional: Translation provider settings
+      provider: {
+        type: 'openai', // or 'custom'
+        model: 'gpt-4o', // OpenAI model to use
+        apiKey: process.env.OPENAI_API_KEY,
+        baseURL: process.env.OPENAI_BASE_URL,
+        
+        // Optional: Custom translation function
+        customTranslate: async ({ data, fromLocale, toLocale }) => {
+          // Your custom translation logic
+          return translatedData
+        },
+      },
 
-    return config
-  }
-```
+      // Optional: Global field exclusions (across all collections)
+      excludeFields: ['slug', 'id', 'createdAt', 'updatedAt'],
 
-First, we receive the existing payload config along with any plugin options.
+      // Optional: Enable translation sync by default
+      enableTranslationSyncByDefault: true,
 
-From here, you can extend the config as you wish.
-
-Finally, you return the config and that is it!
-
-##### Spread Syntax
-
-Spread syntax (or the spread operator) is a feature in JavaScript that uses the dot notation **(...)** to spread elements from arrays, strings, or objects into various contexts.
-
-We are going to use spread syntax to allow us to add data to existing arrays without losing the existing data. It is crucial to spread the existing data correctly – else this can cause adverse behavior and conflicts with Payload config and other plugins.
-
-Let’s say you want to build a plugin that adds a new collection:
-
-```ts
-config.collections = [
-  ...(config.collections || []),
-  // Add additional collections here
-]
-```
-
-First we spread the `config.collections` to ensure that we don’t lose the existing collections, then you can add any additional collections just as you would in a regular payload config.
-
-This same logic is applied to other properties like admin, hooks, globals:
-
-```ts
-config.globals = [
-  ...(config.globals || []),
-  // Add additional globals here
-]
-
-config.hooks = {
-  ...(incomingConfig.hooks || {}),
-  // Add additional hooks here
-}
-```
-
-Some properties will be slightly different to extend, for instance the onInit property:
-
-```ts
-import { onInitExtension } from './onInitExtension' // example file
-
-config.onInit = async (payload) => {
-  if (incomingConfig.onInit) await incomingConfig.onInit(payload)
-  // Add additional onInit code by defining an onInitExtension function
-  onInitExtension(pluginOptions, payload)
-}
-```
-
-If you wish to add to the onInit, you must include the **async/await**. We don’t use spread syntax in this case, instead you must await the existing `onInit` before running additional functionality.
-
-In the template, we have stubbed out some addition `onInit` actions that seeds in a document to the `plugin-collection`, you can use this as a base point to add more actions - and if not needed, feel free to delete it.
-
-##### Types.ts
-
-If your plugin has options, you should define and provide types for these options.
-
-```ts
-export type MyPluginConfig = {
-  /**
-   * List of collections to add a custom field
-   */
-  collections?: Partial<Record<CollectionSlug, true>>
-  /**
-   * Disable the plugin
-   */
-  disabled?: boolean
-}
-```
-
-If possible, include JSDoc comments to describe the options and their types. This allows a developer to see details about the options in their editor.
-
-##### Testing
-
-Having a test suite for your plugin is essential to ensure quality and stability. **Vitest** is a fast, modern testing framework that works seamlessly with Vite and supports TypeScript out of the box.
-
-Vitest organizes tests into test suites and cases, similar to other testing frameworks. We recommend creating individual tests based on the expected behavior of your plugin from start to finish.
-
-Writing tests with Vitest is very straightforward, and you can learn more about how it works in the [Vitest documentation.](https://vitest.dev/)
-
-For this template, we stubbed out `int.spec.ts` in the `dev` folder where you can write your tests.
-
-```ts
-describe('Plugin tests', () => {
-  // Create tests to ensure expected behavior from the plugin
-  it('some condition that must be met', () => {
-   // Write your test logic here
-   expect(...)
-  })
+      // Optional: Custom collection slug for metadata
+      translationExclusionsSlug: 'translation-exclusions',
+    }),
+  ],
 })
 ```
 
-## Best practices
+### Per-Collection Configuration
 
-With this tutorial and the plugin template, you should have everything you need to start building your own plugin.
-In addition to the setup, here are other best practices aim we follow:
+You can configure translation behavior per collection:
 
-- **Providing an enable / disable option:** For a better user experience, provide a way to disable the plugin without uninstalling it. This is especially important if your plugin adds additional webpack aliases, this will allow you to still let the webpack run to prevent errors.
-- **Include tests in your GitHub CI workflow**: If you’ve configured tests for your package, integrate them into your workflow to run the tests each time you commit to the plugin repository. Learn more about [how to configure tests into your GitHub CI workflow.](https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs)
-- **Publish your finished plugin to NPM**: The best way to share and allow others to use your plugin once it is complete is to publish an NPM package. This process is straightforward and well documented, find out more [creating and publishing a NPM package here.](https://docs.npmjs.com/creating-and-publishing-scoped-public-packages/).
-- **Add payload-plugin topic tag**: Apply the tag **payload-plugin **to your GitHub repository. This will boost the visibility of your plugin and ensure it gets listed with [existing payload plugins](https://github.com/topics/payload-plugin).
-- **Use [Semantic Versioning](https://semver.org/) (SemVar)** - With the SemVar system you release version numbers that reflect the nature of changes (major, minor, patch). Ensure all major versions reference their Payload compatibility.
+```typescript
+collections: {
+  // Simple enable
+  posts: true,
+  
+  // Disable translation
+  drafts: false,
+  
+  // Advanced configuration
+  pages: {
+    enabled: true,
+    excludeFields: ['slug', 'author', 'seo.keywords'],
+  },
+}
+```
 
-# Questions
+### Custom Translation Provider
 
-Please contact [Payload](mailto:dev@payloadcms.com) with any questions about using this plugin template.
+If you don't want to use OpenAI, you can provide your own translation function:
+
+```typescript
+provider: {
+  type: 'custom',
+  customTranslate: async ({ data, fromLocale, toLocale, payload, collection }) => {
+    // Use Google Translate, DeepL, or any other service
+    const translated = await yourTranslationService.translate(data, {
+      from: fromLocale,
+      to: toLocale,
+    })
+    
+    return translated
+  },
+}
+```
+
+---
+
+## 📚 Usage Guide
+
+### 1. Creating Content
+
+1. Create a new document in your **default language**
+2. Fill in all the fields with content
+3. Save the document
+4. ✨ The plugin automatically translates and saves the content in all secondary languages
+
+### 2. Locking Fields from Translation
+
+Sometimes you want to customize translations in secondary languages without them being overwritten:
+
+1. Switch to a **secondary language** (e.g., English)
+2. Find the field you want to customize
+3. Click the **🔒 Translation lock** button (or **🌐 Auto-translate** to unlock)
+4. Edit the field with your custom translation
+5. Save the document
+
+Now when you update that field in the default language, it won't overwrite your custom translation in the secondary language!
+
+### 3. Managing Translation Sync
+
+Each document has a **"Enable Auto-Translation"** checkbox in the sidebar:
+
+- ✅ **Enabled** (default): Changes in default language automatically translate
+- ❌ **Disabled**: No automatic translation occurs
+
+### 4. Field-Level Control
+
+The plugin tracks field exclusions per document, per locale, per field path. This means you can:
+
+- Lock translation for `title` in English but keep it unlocked in German
+- Lock a specific block item (e.g., `content.0.description`) in one language
+- Lock nested fields like `seo.meta.description`
+
+---
+
+## 🏗️ How Translation Works
+
+### Translation Flow
+
+```
+1. User edits document in DEFAULT language (e.g., Swedish)
+   ↓
+2. User saves document
+   ↓
+3. Plugin checks if translationSync is enabled
+   ↓
+4. For each SECONDARY language (e.g., English, German):
+   a. Fetch field-level exclusions for that language
+   b. Remove excluded fields from translation payload
+   c. Translate remaining fields using OpenAI
+   d. Merge translated data with existing, preserving excluded fields
+   e. Save translated document in that language
+```
+
+### Field Exclusion Logic
+
+- **Global exclusions**: Applied to all collections (configured in plugin options)
+- **Collection exclusions**: Applied to specific collections (configured per collection)
+- **Field-level exclusions**: Set by users via UI (stored in `translation-exclusions` collection)
+- **Auto-excluded**: `id`, `_id`, `createdAt`, `updatedAt`, `translationSync`, `__v`
+
+### Nested Field Support
+
+The plugin fully supports nested and complex field structures:
+
+- **Objects**: `meta.description` ✅
+- **Arrays**: `content.0.title` ✅
+- **Blocks**: `layout.0.heading` ✅
+- **Rich Text**: Translates rich text content ✅
+
+---
+
+## 🎨 UI Components
+
+The plugin adds minimal UI elements to your admin panel:
+
+### Translation Sync Toggle
+- **Location**: Document sidebar
+- **Purpose**: Enable/disable auto-translation for the entire document
+
+### Translation Control Button (per field)
+- **Location**: Near each translatable field (in secondary languages only)
+- **Purpose**: Lock/unlock translation for specific fields
+- **States**:
+  - 🌐 **Auto-translate**: Field will be updated from default language
+  - 🔒 **Translation locked**: Field won't be overwritten from default language
+
+---
+
+## 🔍 Debugging
+
+Enable debugging to see detailed logs:
+
+```typescript
+autoTranslate({
+  debugging: true,
+  // ... other options
+})
+```
+
+This will log:
+- Configuration on startup
+- Translation triggers
+- Excluded paths for each translation
+- Translation success/failure messages
+- API calls and responses
+
+---
+
+## 📊 Architecture
+
+The plugin is built with a clean, modular architecture inspired by [payload-ai](https://github.com/ashbuilds/payload-ai):
+
+```
+src/
+├── index.ts                    # Main plugin entry point
+├── types/                      # TypeScript type definitions
+├── collections/                # Translation metadata collection
+├── services/                   # Translation service layer
+│   └── translationService.ts   # Handles translation logic
+├── utilities/                  # Helper functions
+│   └── fieldHelpers.ts         # Field traversal & merging
+├── components/                 # UI components
+│   └── TranslationControl.tsx  # Field-level control button
+└── endpoints/                  # Custom API endpoints
+    └── translationExclusionsEndpoint.ts
+```
+
+---
+
+## 🧪 Testing
+
+Run the test suite:
+
+```bash
+pnpm test              # Run all tests
+pnpm test:int          # Run integration tests
+pnpm test:e2e          # Run end-to-end tests
+```
+
+---
+
+## 🔒 Access Control
+
+The plugin respects Payload's access control. Translation operations run with the same permissions as the user making the update.
+
+If you need custom access control for translation features, you can add hooks or modify the endpoints.
+
+---
+
+## 🚧 Limitations
+
+- **One-way translation only**: Default language → Secondary languages (not vice versa)
+- **No real-time translation**: Translation happens on save, not as you type
+- **OpenAI dependency**: Requires OpenAI API key (unless using custom provider)
+- **Cost considerations**: Each translation uses OpenAI API credits
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+---
+
+## 📝 License
+
+MIT
+
+---
+
+## 🙏 Acknowledgments
+
+Inspired by the excellent [payload-ai plugin](https://github.com/ashbuilds/payload-ai) by [@ashbuilds](https://github.com/ashbuilds).
+
+---
+
+## 📞 Support
+
+If you have questions or need help:
+
+1. Check the [Payload CMS documentation](https://payloadcms.com/docs)
+2. Open an issue on GitHub
+3. Join the [Payload Discord](https://discord.gg/payload)
+
+---
+
+**Made with ❤️ for the Payload CMS community**

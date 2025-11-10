@@ -1,0 +1,60 @@
+.translation-control {
+  margin: 0.5rem 0;
+  padding: 0.75rem;
+  background: var(--theme-elevation-50, #f9fafb);
+  border-radius: 4px;
+  border: 1px solid var(--theme-elevation-200, #e5e7eb);
+}
+
+.translation-control__button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--theme-elevation-0, #ffffff);
+  border: 1px solid var(--theme-elevation-400, #d1d5db);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--theme-text, #1f2937);
+}
+
+.translation-control__button:hover {
+  background: var(--theme-elevation-100, #f3f4f6);
+  border-color: var(--theme-elevation-500, #9ca3af);
+}
+
+.translation-control__button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.translation-control__button.excluded {
+  background: var(--theme-warning-50, #fef3c7);
+  border-color: var(--theme-warning-300, #fcd34d);
+  color: var(--theme-warning-900, #78350f);
+}
+
+.translation-control__button.excluded:hover {
+  background: var(--theme-warning-100, #fef3c7);
+  border-color: var(--theme-warning-400, #fbbf24);
+}
+
+.translation-control__icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.translation-control__label {
+  font-weight: 500;
+}
+
+.translation-control__help {
+  margin: 0.5rem 0 0 0;
+  font-size: 0.75rem;
+  color: var(--theme-text-secondary, #6b7280);
+  line-height: 1.4;
+}
+

@@ -47,9 +47,25 @@ const buildConfigWithMemoryDB = async () => {
           },
           {
             name: 'description',
-            type: 'text',
+            type: 'richText',
             localized: true,
             required: true,
+          },
+          {
+            name: 'content',
+            type: 'array',
+            fields: [
+              {
+                name: 'title',
+                type: 'text',
+              },
+              {
+                name: 'image',
+                type: 'upload',
+                relationTo: 'media',
+              },
+            ],
+            localized: true,
           },
         ],
       },
@@ -79,6 +95,10 @@ const buildConfigWithMemoryDB = async () => {
           code: 'en',
           label: 'English',
         },
+        {
+          code: 'de',
+          label: 'Deutsch',
+        },
       ],
     },
     onInit: async (payload) => {
@@ -88,6 +108,12 @@ const buildConfigWithMemoryDB = async () => {
       autoTranslate({
         collections: {
           posts: true,
+        },
+        debugging: true,
+        enableTranslationSyncByDefault: true,
+        provider: {
+          type: 'openai',
+          model: 'gpt-4o',
         },
       }),
     ],

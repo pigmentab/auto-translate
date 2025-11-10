@@ -1,0 +1,94 @@
+# Auto-Translate Plugin - Cursor Rules
+
+## Project Overview
+This is a Payload CMS plugin that automatically translates content from a default language to secondary languages with field-level exclusion controls.
+
+## Key Architecture Decisions
+
+1. **One-Way Translation**: Default locale → Secondary locales only (never the reverse)
+2. **Field-Level Granularity**: Users can lock specific fields from auto-translation
+3. **Non-Destructive Updates**: Locked fields are preserved when updating default language
+4. **Provider Pattern**: Extensible architecture for custom translation services
+
+## Code Style
+
+- Use TypeScript strict mode
+- Follow Payload CMS conventions
+- Use ESM modules (import/export)
+- Prefer async/await over promises
+- Use descriptive variable names
+
+## File Structure
+
+```
+src/
+├── index.ts                              # Plugin entry point
+├── types/index.ts                        # Type definitions
+├── collections/translationExclusions.ts  # Metadata collection
+├── services/translationService.ts        # Translation logic
+├── utilities/fieldHelpers.ts             # Helper functions
+├── components/TranslationControl.tsx     # UI components
+└── endpoints/                            # API endpoints
+```
+
+## Important Patterns
+
+### Hook Prevention
+Always include `context.skipAutoTranslate` when updating documents from within the plugin to prevent infinite loops:
+
+```typescript
+await req.payload.update({
+  collection: 'posts',
+  id: doc.id,
+  data: translatedData,
+  context: { skipAutoTranslate: true }, // Prevent loop!
+})
+```
+
+### Path Handling
+Use dot notation for nested paths:
+- Simple: `'title'`
+- Nested: `'seo.metaDescription'`
+- Array: `'content.0.description'`
+
+### Exclusion Logic
+Exclusions are checked at three levels:
+1. Global config (`excludeFields`)
+2. Collection config (`collections.posts.excludeFields`)
+3. Field-level UI (stored in `translation-exclusions` collection)
+
+## Testing
+
+When making changes:
+1. Test with `pnpm dev`
+2. Create a post in default locale (sv)
+3. Verify translation to secondary locale (en)
+4. Test field locking functionality
+5. Verify locked fields aren't overwritten
+
+## Common Gotchas
+
+1. **Don't edit secondary locales without locking first** - Changes will be overwritten
+2. **Always check req.locale** - Only translate from default locale
+3. **Handle missing documents gracefully** - Not all locales may exist yet
+4. **Preserve internal fields** - Don't translate id, createdAt, etc.
+
+## Debugging
+
+Enable debug mode to see detailed logs:
+```typescript
+autoTranslate({
+  debugging: true,
+  // ...
+})
+```
+
+## Documentation
+
+All user-facing documentation is in:
+- README.md - Main docs
+- QUICKSTART.md - Quick setup
+- USAGE_GUIDE.md - Detailed examples
+- INTEGRATION_EXAMPLES.md - Code examples
+- ARCHITECTURE.md - Technical details
+

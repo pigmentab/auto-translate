@@ -1,28 +1,44 @@
 {
-  "name": "auto-translate",
+  "name": "@pigment/auto-translate",
   "version": "1.0.0",
-  "description": "A blank template to get started with Payload 3.0",
+  "description": "Automatic translation plugin for Payload CMS with field-level exclusion controls",
+  "keywords": [
+    "payload",
+    "payload-plugin",
+    "payloadcms",
+    "translation",
+    "auto-translate",
+    "i18n",
+    "localization",
+    "openai",
+    "gpt"
+  ],
+  "author": "Pigment",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/auto-translate"
+  },
   "license": "MIT",
   "type": "module",
   "exports": {
     ".": {
-      "import": "./src/index.ts",
-      "types": "./src/index.ts",
-      "default": "./src/index.ts"
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     },
     "./client": {
-      "import": "./src/exports/client.ts",
-      "types": "./src/exports/client.ts",
-      "default": "./src/exports/client.ts"
+      "import": "./dist/exports/client.js",
+      "types": "./dist/exports/client.d.ts",
+      "default": "./dist/exports/client.js"
     },
     "./rsc": {
-      "import": "./src/exports/rsc.ts",
-      "types": "./src/exports/rsc.ts",
-      "default": "./src/exports/rsc.ts"
+      "import": "./dist/exports/rsc.js",
+      "types": "./dist/exports/rsc.d.ts",
+      "default": "./dist/exports/rsc.js"
     }
   },
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "files": [
     "dist"
   ],

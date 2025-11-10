@@ -1,199 +1,316 @@
-import type { CollectionSlug, Config } from 'payload'
+import type { Config } from 'payload'
 
-import OpenAI from 'openai'
+import type { AutoTranslateConfig } from './types/index.js'
 
-import { customEndpointHandler } from './endpoints/customEndpointHandler.js'
+import { getTranslationExclusionsCollection } from './collections/translationExclusions.js'
+import { getExclusionStatus, toggleExclusion } from './endpoints/translationExclusionsEndpoint.js'
+import { getTranslationSettingsGlobal } from './globals/translationSettings.js'
+import { TranslationService } from './services/translationService.js'
 
-export type AutoTranslateConfig = {
-  /**
-   * List of collections to add a custom field
-   */
-  collections?: Partial<Record<CollectionSlug, true>>
-  disabled?: boolean
-}
+export * from './types/index.js'
 
 export const autoTranslate =
   (pluginOptions: AutoTranslateConfig) =>
   (config: Config): Config => {
+    // Validate configuration
     if (!config.collections) {
       config.collections = []
     }
 
-    config.collections.push({
-      slug: 'plugin-collection',
-      fields: [
-        {
-          name: 'id',
-          type: 'text',
-        },
-      ],
-    })
+    if (!config.localization) {
+      console.warn(
+        '[Auto-Translate Plugin] No localization config found. Plugin will not function properly.',
+      )
+      return config
+    }
 
     const localizationConfig = config.localization
+    const defaultLocale = localizationConfig.defaultLocale
+    const allLocales = Array.isArray(localizationConfig.locales)
+      ? localizationConfig.locales.map((l) => (typeof l === 'string' ? l : l.code))
+      : []
 
-    // if (localizationConfig) {
-    //   // Access all enabled locales
-    //   const locales = localizationConfig.locales // Array of locale codes like ['en', 'es', 'fr']
-    //   const defaultLocale = localizationConfig.defaultLocale // The default locale
-    //   const fallback = localizationConfig.fallback // Whether fallback is enabled
+    if (pluginOptions.debugging) {
+      console.log('[Auto-Translate Plugin] Configuration:')
+      console.log('- Default locale:', defaultLocale)
+      console.log('- All locales:', allLocales)
+      console.log('- Enabled collections:', Object.keys(pluginOptions.collections || {}))
+    }
 
-    //   console.log('locales', locales)
-    //   console.log('defaultLocale', defaultLocale)
-    //   console.log('fallback', fallback)
-    // }
+    // Add translation exclusions collection
+    const exclusionsSlug = pluginOptions.translationExclusionsSlug || 'translation-exclusions'
+    config.collections.push(getTranslationExclusionsCollection(exclusionsSlug))
 
+    // Add translation settings global
+    if (!config.globals) {
+      config.globals = []
+    }
+    const settingsSlug = pluginOptions.translationSettingsSlug || 'translation-settings'
+    config.globals.push(getTranslationSettingsGlobal(settingsSlug))
+
+    // Initialize translation service
+    const translationService = new TranslationService(pluginOptions)
+
+    // Add translation endpoints
+    if (!config.endpoints) {
+      config.endpoints = []
+    }
+
+    config.endpoints.push(
+      {
+        handler: getExclusionStatus,
+        method: 'get',
+        path: '/translation-exclusions',
+      },
+      {
+        handler: toggleExclusion,
+        method: 'post',
+        path: '/translation-exclusions/toggle',
+      },
+    )
+
+    // Configure collections with auto-translate
     if (pluginOptions.collections) {
       for (const collectionSlug in pluginOptions.collections) {
-        const collection = config.collections.find(
-          (collection) => collection.slug === collectionSlug,
-        )
+        const collectionConfig = pluginOptions.collections[collectionSlug]
 
-        if (collection) {
-          collection.fields.push({
-            name: 'addedByPlugin',
-            type: 'text',
-            admin: {
-              position: 'sidebar',
-            },
-          })
+        // Skip if disabled
+        if (
+          collectionConfig === false ||
+          (typeof collectionConfig === 'object' && collectionConfig.enabled === false)
+        ) {
+          continue
+        }
 
-          // afterChange hook
-          if (!collection.hooks) {
-            collection.hooks = {}
+        const collection = config.collections.find((c) => c.slug === collectionSlug)
+
+        if (!collection) {
+          console.warn(`[Auto-Translate Plugin] Collection "${collectionSlug}" not found in config`)
+          continue
+        }
+
+        // Add translationSync field to collection
+        collection.fields.push({
+          name: 'translationSync',
+          type: 'checkbox',
+          admin: {
+            description:
+              'When enabled, changes in the default language will automatically translate to other languages',
+            position: 'sidebar',
+          },
+          defaultValue: pluginOptions.enableTranslationSyncByDefault ?? true,
+          label: 'Enable Auto-Translation',
+        })
+
+        // Add hooks for translation
+        if (!collection.hooks) {
+          collection.hooks = {}
+        }
+
+        if (!collection.hooks.afterChange) {
+          collection.hooks.afterChange = []
+        }
+
+        // Main translation hook
+        collection.hooks.afterChange.push(async ({ doc, operation, previousDoc, req }) => {
+          // Only process create and update operations
+          if (operation !== 'create' && operation !== 'update') {
+            return doc
           }
 
-          if (!collection.hooks.afterChange) {
-            collection.hooks.afterChange = []
+          // Only translate if editing from default locale
+          if (req.locale !== defaultLocale) {
+            if (pluginOptions.debugging) {
+              req.payload.logger.info(
+                `[Auto-Translate Plugin] Skipping translation - not default locale (current: ${req.locale}, default: ${defaultLocale})`,
+              )
+            }
+            return doc
           }
 
-          collection.hooks.afterChange.push(async ({ doc, operation, req }) => {
+          // Check if translation sync is enabled
+          if (!doc.translationSync) {
+            if (pluginOptions.debugging) {
+              req.payload.logger.info(
+                `[Auto-Translate Plugin] Skipping translation - translationSync disabled for ${collectionSlug}:${doc.id}`,
+              )
+            }
+            return doc
+          }
+
+          if (pluginOptions.debugging) {
             req.payload.logger.info(
-              `[Auto-Translate Plugin] ${collection.slug} document ${operation}: ${doc.id}`,
+              `[Auto-Translate Plugin] Processing ${collectionSlug} document ${operation}: ${doc.id}`,
             )
+          }
 
-            const locales = ['en', 'sv']
-            const defaultLocale = 'sv'
+          // Get secondary locales (all locales except default)
+          const secondaryLocales = allLocales.filter((locale) => locale !== defaultLocale)
 
-            // TODO: Trigger translation or other logic
-            if (
-              (operation === 'create' || operation === 'update') &&
-              req.locale === defaultLocale
-            ) {
-              console.log('doc', doc)
-              const translated: Record<string, any> = {}
-
-              const translateField = async (value: any) => {
-                const client = new OpenAI({
-                  apiKey: process.env['OPENAI_API_KEY'], // This is the default and can be omitted
-                })
-
-                const response = await client.responses.create({
-                  input: value,
-                  instructions: 'Translate the following text to english',
-                  model: 'gpt-4o',
-                })
-
-                return response.output_text
+          // Translate to each secondary locale
+          for (const targetLocale of secondaryLocales) {
+            try {
+              if (pluginOptions.debugging) {
+                req.payload.logger.info(
+                  `[Auto-Translate Plugin] Translating ${collectionSlug}:${doc.id} from ${defaultLocale} to ${targetLocale}`,
+                )
               }
 
-              await Promise.all(
-                Object.entries(doc).map(async ([key, value]) => {
-                  if (['createdAt', 'id', 'updatedAt'].includes(key)) {
-                    return
-                  }
-
-                  return translateField(value).then((translatedValue) => {
-                    translated[key] = translatedValue
-                    return translated
-                  })
-                }),
+              // Get field-level exclusions for this locale
+              const excludedPaths = await translationService.getExclusions(
+                req.payload,
+                collectionSlug,
+                doc.id,
+                targetLocale,
               )
 
-              console.log('translated')
+              // Get global/collection-level excluded fields
+              const configExcludedFields =
+                translationService.getConfigExcludedFields(collectionSlug)
+              const allExcludedPaths = [...excludedPaths, ...configExcludedFields]
 
+              if (pluginOptions.debugging && allExcludedPaths.length > 0) {
+                req.payload.logger.info(
+                  `[Auto-Translate Plugin] Excluded paths for ${targetLocale}: ${allExcludedPaths.join(', ')}`,
+                )
+              }
+
+              // Get existing document in target locale to preserve excluded fields
+              let existingDoc: any = null
+              try {
+                const existingResult = await req.payload.findByID({
+                  id: doc.id,
+                  collection: collectionSlug,
+                  fallbackLocale: false,
+                  locale: targetLocale,
+                })
+                existingDoc = existingResult
+              } catch (error) {
+                // Document doesn't exist in this locale yet, that's okay
+                if (pluginOptions.debugging) {
+                  req.payload.logger.info(
+                    `[Auto-Translate Plugin] No existing document for ${targetLocale}, will create new`,
+                  )
+                }
+              }
+
+              // Translate the document
+              const translatedData = await translationService.translate({
+                collection: collectionSlug,
+                data: doc,
+                excludedPaths: allExcludedPaths,
+                fromLocale: defaultLocale,
+                payload: req.payload,
+                toLocale: targetLocale,
+              })
+
+              // Merge translated data with existing, preserving excluded fields
+              const finalData = translatedData
+              if (existingDoc && allExcludedPaths.length > 0) {
+                // Preserve excluded fields from existing document
+                for (const excludedPath of allExcludedPaths) {
+                  const existingValue = getNestedValue(existingDoc, excludedPath)
+                  if (existingValue !== undefined) {
+                    setNestedValue(finalData, excludedPath, existingValue)
+                  }
+                }
+              }
+
+              // Update the document in the target locale
               await req.payload.update({
                 id: doc.id,
-                collection: collection.slug,
-                data: translated,
-                locale: locales.find((locale) => locale !== req.locale),
+                collection: collectionSlug,
+                data: finalData,
+                locale: targetLocale,
+                // Prevent infinite loop - don't trigger hooks
+                context: {
+                  skipAutoTranslate: true,
+                },
               })
-              // auto-translate logic here
-              // const coll = await req.payload.find({
-              //   collection: collection.slug,
-              //   fallbackLocale: false,
-              //   locale: locales.find((locale) => locale !== req.locale),
-              //   where: {
-              //     id: {
-              //       equals: doc.id,
-              //     },
-              //   },
-              // })
-              // console.log('coll', coll)
+
+              if (pluginOptions.debugging) {
+                req.payload.logger.info(
+                  `[Auto-Translate Plugin] Successfully translated ${collectionSlug}:${doc.id} to ${targetLocale}`,
+                )
+              }
+            } catch (error) {
+              req.payload.logger.error(
+                `[Auto-Translate Plugin] Error translating to ${targetLocale}:`,
+                error,
+              )
+              // Continue with other locales even if one fails
             }
-          })
+          }
+
+          return doc
+        })
+
+        // Prevent infinite loops - skip translation if triggered by our own update
+        const originalAfterChangeHooks = [...(collection.hooks.afterChange || [])]
+        collection.hooks.afterChange = [
+          async (args) => {
+            // Skip if this update was triggered by auto-translate
+            if (args.context?.skipAutoTranslate) {
+              return args.doc
+            }
+
+            // Run all hooks including translation
+            for (const hook of originalAfterChangeHooks) {
+              const result = await hook(args)
+              if (result !== undefined) {
+                args.doc = result
+              }
+            }
+
+            return args.doc
+          },
+        ]
+
+        if (pluginOptions.debugging) {
+          console.log(`[Auto-Translate Plugin] Configured collection: ${collectionSlug}`)
         }
       }
     }
 
     /**
-     * If the plugin is disabled, we still want to keep added collections/fields so the database schema is consistent which is important for migrations.
-     * If your plugin heavily modifies the database schema, you may want to remove this property.
+     * If the plugin is disabled, we still want to keep added collections/fields
+     * so the database schema is consistent which is important for migrations.
      */
     if (pluginOptions.disabled) {
       return config
     }
 
-    if (!config.endpoints) {
-      config.endpoints = []
-    }
-
-    if (!config.admin) {
-      config.admin = {}
-    }
-
-    if (!config.admin.components) {
-      config.admin.components = {}
-    }
-
-    if (!config.admin.components.beforeDashboard) {
-      config.admin.components.beforeDashboard = []
-    }
-
-    config.admin.components.beforeDashboard.push(`auto-translate/client#BeforeDashboardClient`)
-    config.admin.components.beforeDashboard.push(`auto-translate/rsc#BeforeDashboardServer`)
-
-    config.endpoints.push({
-      handler: customEndpointHandler,
-      method: 'get',
-      path: '/my-plugin-endpoint',
-    })
-
-    const incomingOnInit = config.onInit
-
-    config.onInit = async (payload) => {
-      // Ensure we are executing any existing onInit functions before running our own.
-      if (incomingOnInit) {
-        await incomingOnInit(payload)
-      }
-
-      const { totalDocs } = await payload.count({
-        collection: 'plugin-collection',
-        where: {
-          id: {
-            equals: 'seeded-by-plugin',
-          },
-        },
-      })
-
-      if (totalDocs === 0) {
-        await payload.create({
-          collection: 'plugin-collection',
-          data: {
-            id: 'seeded-by-plugin',
-          },
-        })
-      }
-    }
-
     return config
   }
+
+/**
+ * Helper function to get nested value from object using dot notation
+ */
+function getNestedValue(obj: any, path: string): any {
+  return path.split('.').reduce((current, part) => {
+    if (current === null || current === undefined) {
+      return undefined
+    }
+    return current[part]
+  }, obj)
+}
+
+/**
+ * Helper function to set nested value in object using dot notation
+ */
+function setNestedValue(obj: any, path: string, value: any): void {
+  const parts = path.split('.')
+  let current = obj
+
+  for (let i = 0; i < parts.length - 1; i++) {
+    const part = parts[i]
+    if (!(part in current) || current[part] === null || typeof current[part] !== 'object') {
+      // Check if next part is a number (array index)
+      const nextPart = parts[i + 1]
+      current[part] = /^\d+$/.test(nextPart) ? [] : {}
+    }
+    current = current[part]
+  }
+
+  current[parts[parts.length - 1]] = value
+}
