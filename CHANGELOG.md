@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.0] - 2025-11-13
+
+### ✨ Features
+
+- **Dynamic Translation Settings** - Translation prompts and parameters are now fetched from the `translation-settings` global
+  - Customize system prompt and translation rules through admin UI
+  - Change model, temperature, and max tokens without redeploying
+  - Use `{fromLocale}` and `{toLocale}` placeholders in custom prompts
+  - Settings changes take effect immediately
+  - Automatic fallback to sensible defaults if settings not configured
+
+### 🐛 Bug Fixes
+
+- **Enhanced Error Handling** - Dramatically improved error reporting for translation failures
+  - Detailed error messages with full context (collection, document ID, locales)
+  - Stack traces in debug mode for easier troubleshooting
+  - OpenAI-specific error detection and logging
+  - Better JSON parsing error messages with sample output
+  - Contextual error messages showing translation direction
+
+### 🚀 Performance
+
+- **Configurable Timeouts** - Added `provider.timeout` configuration option
+  - Default: 30 seconds
+  - Useful for Vercel deployments with execution time limits
+  - Separate timeout for each OpenAI API call
+  - Enhanced logging shows payload size and timeout used
+
+### 📚 Documentation
+
+- Added `docs/DYNAMIC_TRANSLATION_SETTINGS.md` - Complete guide to using dynamic settings
+- Added `docs/ERROR_HANDLING_FIX.md` - Troubleshooting guide for translation errors
+- Updated type definitions with inline JSDoc for better IDE support
+
+---
+
 ## [1.2.1] - 2025-11-13
 
 Hotfix to update install command

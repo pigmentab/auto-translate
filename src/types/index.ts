@@ -13,15 +13,6 @@ export type AutoTranslateConfig = {
   collections?: Partial<Record<CollectionSlug, boolean | CollectionTranslateConfig>>
 
   /**
-   * Enable field-level translation exclusions (default: true)
-   * When disabled:
-   * - Translation exclusions collection is hidden
-   * - Translation control buttons are not added to fields
-   * - All localized fields are always translated
-   */
-  enableExclusions?: boolean
-
-  /**
    * Show debug logs
    */
   debugging?: boolean
@@ -37,6 +28,15 @@ export type AutoTranslateConfig = {
    * This significantly speeds up translation for documents with repeated content
    */
   enableDeduplication?: boolean
+
+  /**
+   * Enable field-level translation exclusions (default: true)
+   * When disabled:
+   * - Translation exclusions collection is hidden
+   * - Translation control buttons are not added to fields
+   * - All localized fields are always translated
+   */
+  enableExclusions?: boolean
 
   /**
    * Enable translation sync by default
@@ -69,6 +69,10 @@ export type AutoTranslateConfig = {
     baseURL?: string
     customTranslate?: (options: TranslateOptions) => Promise<any>
     model?: string
+    /**
+     * Timeout for translation requests in milliseconds (default: 30000)
+     */
+    timeout?: number
     type: 'custom' | 'openai'
   }
 

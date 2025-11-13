@@ -7,9 +7,9 @@ import { getTranslationSettingsGlobal } from './globals/translationSettings.js'
 import { TranslationService } from './services/translationService.js'
 import { injectTranslationControls } from './utilities/injectTranslationControls.js'
 
-export * from './types/index.js'
 export { getTranslationExclusionsCollection } from './collections/translationExclusions.js'
 export { getTranslationSettingsGlobal } from './globals/translationSettings.js'
+export * from './types/index.js'
 
 export const autoTranslate =
   (pluginOptions: AutoTranslateConfig) =>
@@ -251,10 +251,33 @@ export const autoTranslate =
                 )
               }
             } catch (error) {
+              // Log detailed error information
+              const errorMessage = error instanceof Error ? error.message : String(error)
+              const errorStack = error instanceof Error ? error.stack : undefined
+              const errorDetails = {
+                collection: collectionSlug,
+                documentId: doc.id,
+                fromLocale: defaultLocale,
+                message: errorMessage,
+                stack: errorStack,
+                toLocale: targetLocale,
+              }
+
               req.payload.logger.error(
-                `[Auto-Translate Plugin] Error translating to ${targetLocale}:`,
-                error,
+                `[Auto-Translate Plugin] Error translating ${collectionSlug}:${doc.id} to ${targetLocale}:`,
               )
+              req.payload.logger.error(errorMessage)
+
+              if (pluginOptions.debugging && errorStack) {
+                req.payload.logger.error('Stack trace:')
+                req.payload.logger.error(errorStack)
+              }
+
+              // Log additional context if it's an OpenAI error
+              if (error && typeof error === 'object' && 'error' in error) {
+                req.payload.logger.error('OpenAI error details:', JSON.stringify(error, null, 2))
+              }
+
               // Continue with other locales even if one fails
             }
           }

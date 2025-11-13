@@ -186,6 +186,60 @@ export class TranslationService {
   }
 
   /**
+   * Gets translation settings from the global or returns defaults
+   */
+  private async getTranslationSettings(payload: Payload): Promise<{
+    maxTokens?: number
+    model: string
+    systemPrompt: string
+    temperature: number
+    translationRules: string
+  }> {
+    const settingsSlug = this.config.translationSettingsSlug || 'translation-settings'
+
+    // Default values
+    const defaults = {
+      maxTokens: undefined,
+      model: this.config.provider?.model || 'gpt-4o',
+      systemPrompt:
+        'You are a professional translator. Translate the JSON object values from {fromLocale} to {toLocale}.',
+      temperature: 0.3,
+      translationRules: `Rules:
+        - Only translate the values, never the keys
+        - Preserve the exact JSON structure
+        - Maintain formatting, HTML tags, and special characters
+        - Return only valid JSON without any markdown formatting or code blocks
+        - If a value is already in the target language or is a proper noun, keep it as is`,
+    }
+
+    try {
+      const settings = await payload.findGlobal({
+        slug: settingsSlug,
+      })
+
+      if (settings) {
+        return {
+          maxTokens: settings.maxTokens || defaults.maxTokens,
+          model: settings.model || defaults.model,
+          systemPrompt: settings.systemPrompt || defaults.systemPrompt,
+          temperature:
+            typeof settings.temperature === 'number' ? settings.temperature : defaults.temperature,
+          translationRules: settings.translationRules || defaults.translationRules,
+        }
+      }
+    } catch (error) {
+      if (this.config.debugging) {
+        console.warn(
+          '[Auto-Translate] Could not fetch translation settings, using defaults:',
+          error,
+        )
+      }
+    }
+
+    return defaults
+  }
+
+  /**
    * Checks if an object is a lexical editor node
    */
   private isLexicalEditorNode(obj: any): boolean {
@@ -338,16 +392,20 @@ export class TranslationService {
   /**
    * Translates using OpenAI API (optimized version)
    */
-  private async translateWithOpenAI(data: any, fromLocale: string, toLocale: string): Promise<any> {
+  private async translateWithOpenAI(
+    data: any,
+    fromLocale: string,
+    toLocale: string,
+    payload: Payload,
+  ): Promise<any> {
     const client = this.getOpenAIClient()
-    const model = this.config.provider?.model || 'gpt-4o'
 
     // Use optimization by default (can be disabled via config)
     const useOptimization = this.config.optimizeTranslation !== false
 
     if (!useOptimization) {
       // Use legacy approach: send entire structure
-      return this.translateWithOpenAILegacy(data, fromLocale, toLocale)
+      return this.translateWithOpenAILegacy(data, fromLocale, toLocale, payload)
     }
 
     // Extract only translatable strings with deduplication
@@ -390,16 +448,32 @@ export class TranslationService {
     }
 
     try {
-      const response = await client.chat.completions.create({
+      // Get translation settings from global
+      const settings = await this.getTranslationSettings(payload)
+
+      // Add timeout configuration (default 30 seconds, configurable via plugin options)
+      const timeout = this.config.provider?.timeout || 30000
+
+      if (this.config.debugging) {
+        console.log(
+          `[Auto-Translate] Calling OpenAI API (timeout: ${timeout}ms, model: ${settings.model})`,
+        )
+        console.log(
+          `[Auto-Translate] Payload size: ${JSON.stringify(stringsToTranslate).length} bytes`,
+        )
+      }
+
+      // Build system message from settings
+      const systemPrompt = settings.systemPrompt
+        .replace('{fromLocale}', fromLocale)
+        .replace('{toLocale}', toLocale)
+
+      const systemMessage = `${systemPrompt}\n\n${settings.translationRules}`
+
+      const requestParams: any = {
         messages: [
           {
-            content: `You are a professional translator. Translate the values in this JSON object from ${fromLocale} to ${toLocale}. 
-            Rules:
-            - Only translate the values, never the keys
-            - Preserve the exact JSON structure
-            - Maintain formatting, HTML tags, and special characters
-            - Return only valid JSON without any markdown formatting or code blocks
-            - If a value is already in the target language or is a proper noun, keep it as is`,
+            content: systemMessage,
             role: 'system',
           },
           {
@@ -407,10 +481,17 @@ export class TranslationService {
             role: 'user',
           },
         ],
-        model,
+        model: settings.model,
         response_format: { type: 'json_object' },
-        temperature: 0.3,
-      })
+        temperature: settings.temperature,
+      }
+
+      // Add maxTokens if specified
+      if (settings.maxTokens) {
+        requestParams.max_tokens = settings.maxTokens
+      }
+
+      const response = await client.chat.completions.create(requestParams, { timeout })
 
       const translatedText = response.choices[0]?.message?.content
 
@@ -418,7 +499,22 @@ export class TranslationService {
         throw new Error('No translation received from OpenAI')
       }
 
-      const translatedStrings = JSON.parse(translatedText)
+      if (this.config.debugging) {
+        console.log(
+          `[Auto-Translate] Received response from OpenAI (${translatedText.length} chars)`,
+        )
+      }
+
+      let translatedStrings: any
+      try {
+        translatedStrings = JSON.parse(translatedText)
+      } catch (parseError) {
+        console.error('[Auto-Translate] Failed to parse OpenAI response as JSON')
+        console.error('[Auto-Translate] Response text:', translatedText.substring(0, 500))
+        throw new Error(
+          `Invalid JSON response from OpenAI: ${parseError instanceof Error ? parseError.message : String(parseError)}`,
+        )
+      }
 
       // Convert back to Map
       const translationsMap = new Map<string, string>()
@@ -432,7 +528,27 @@ export class TranslationService {
       return this.reconstructWithTranslations(metadata, translationsMap, deduplicationMap)
     } catch (error) {
       console.error('[Auto-Translate] Translation error:', error)
-      throw error
+
+      // Provide more context about the error
+      if (error && typeof error === 'object') {
+        const err = error as any
+        if (err.status) {
+          console.error(`[Auto-Translate] OpenAI API status: ${err.status}`)
+        }
+        if (err.code) {
+          console.error(`[Auto-Translate] Error code: ${err.code}`)
+        }
+        if (err.message) {
+          console.error(`[Auto-Translate] Error message: ${err.message}`)
+        }
+      }
+
+      // Add context to the error before re-throwing
+      const contextualError = new Error(
+        `Translation failed from ${fromLocale} to ${toLocale}: ${error instanceof Error ? error.message : String(error)}`,
+      )
+      contextualError.cause = error
+      throw contextualError
     }
   }
 
@@ -443,22 +559,26 @@ export class TranslationService {
     data: any,
     fromLocale: string,
     toLocale: string,
+    payload: Payload,
   ): Promise<any> {
     const client = this.getOpenAIClient()
-    const model = this.config.provider?.model || 'gpt-4o'
+    const timeout = this.config.provider?.timeout || 30000
 
     try {
-      const response = await client.chat.completions.create({
+      // Get translation settings from global
+      const settings = await this.getTranslationSettings(payload)
+
+      // Build system message from settings
+      const systemPrompt = settings.systemPrompt
+        .replace('{fromLocale}', fromLocale)
+        .replace('{toLocale}', toLocale)
+
+      const systemMessage = `${systemPrompt}\n\n${settings.translationRules}`
+
+      const requestParams: any = {
         messages: [
           {
-            content: `You are a professional translator. Translate the JSON object values from ${fromLocale} to ${toLocale}. 
-            Rules:
-            - Only translate the values, never the keys
-            - Preserve the exact JSON structure
-            - Do not translate field names like 'id', 'createdAt', 'updatedAt', etc.
-            - Maintain formatting, HTML tags, and special characters
-            - Return only valid JSON without any markdown formatting or code blocks
-            - If a value is already in the target language or is a proper noun, keep it as is`,
+            content: systemMessage,
             role: 'system',
           },
           {
@@ -466,10 +586,17 @@ export class TranslationService {
             role: 'user',
           },
         ],
-        model,
+        model: settings.model,
         response_format: { type: 'json_object' },
-        temperature: 0.3,
-      })
+        temperature: settings.temperature,
+      }
+
+      // Add maxTokens if specified
+      if (settings.maxTokens) {
+        requestParams.max_tokens = settings.maxTokens
+      }
+
+      const response = await client.chat.completions.create(requestParams, { timeout })
 
       const translatedText = response.choices[0]?.message?.content
 
@@ -558,7 +685,7 @@ export class TranslationService {
     }
 
     // Use OpenAI by default
-    return await this.translateWithOpenAI(dataToTranslate, fromLocale, toLocale)
+    return await this.translateWithOpenAI(dataToTranslate, fromLocale, toLocale, payload)
   }
 
   /**
