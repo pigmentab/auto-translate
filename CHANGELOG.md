@@ -54,6 +54,16 @@ All notable changes to the Auto-Translate plugin will be documented in this file
 
 ### 🐛 Bug Fixes
 
+- **Fixed module resolution error**: Changed component import path from `'auto-translate/client'` to `'@pigment/auto-translate/client'`
+  - Resolves "Module not found: Can't resolve 'auto-translate/client'" error
+  - Ensures proper package exports work when installed in other projects
+  - Updated `injectTranslationControls.ts` to use correct package name
+- **Fixed missing translation settings global**: Now automatically registers the `translation-settings` global
+  - Added `getTranslationSettingsGlobal` import to main plugin
+  - Initializes `config.globals` if it doesn't exist
+  - Registers translation settings UI with configurable slug
+  - Added `translationSettingsSlug` config option (default: 'translation-settings')
+  - Exported `getTranslationSettingsGlobal` for manual registration if needed
 - Fixed potential issue with deduplication map not being used correctly
 - Improved reconstruction logic to handle deduplicated translations
 

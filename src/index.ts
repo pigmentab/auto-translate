@@ -3,10 +3,13 @@ import type { Config } from 'payload'
 import type { AutoTranslateConfig } from './types/index.js'
 
 import { getTranslationExclusionsCollection } from './collections/translationExclusions.js'
+import { getTranslationSettingsGlobal } from './globals/translationSettings.js'
 import { TranslationService } from './services/translationService.js'
 import { injectTranslationControls } from './utilities/injectTranslationControls.js'
 
 export * from './types/index.js'
+export { getTranslationExclusionsCollection } from './collections/translationExclusions.js'
+export { getTranslationSettingsGlobal } from './globals/translationSettings.js'
 
 export const autoTranslate =
   (pluginOptions: AutoTranslateConfig) =>
@@ -39,6 +42,13 @@ export const autoTranslate =
     // Add translation exclusions collection
     const exclusionsSlug = pluginOptions.translationExclusionsSlug || 'translation-exclusions'
     config.collections.push(getTranslationExclusionsCollection(exclusionsSlug))
+
+    // Add translation settings global
+    if (!config.globals) {
+      config.globals = []
+    }
+    const settingsSlug = pluginOptions.translationSettingsSlug || 'translation-settings'
+    config.globals.push(getTranslationSettingsGlobal(settingsSlug))
 
     // Initialize translation service
     const translationService = new TranslationService(pluginOptions)

@@ -66,6 +66,11 @@ export type AutoTranslateConfig = {
    * Collection slug for storing translation exclusions metadata
    */
   translationExclusionsSlug?: string
+
+  /**
+   * Global slug for translation settings UI
+   */
+  translationSettingsSlug?: string
 }
 
 export type CollectionTranslateConfig = {

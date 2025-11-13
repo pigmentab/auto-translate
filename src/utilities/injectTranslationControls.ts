@@ -45,7 +45,7 @@ export function injectTranslationControls(
       const hasTranslationControl = clonedField.admin.components.afterInput.some(
         (component: any) =>
           typeof component === 'object' &&
-          component.path === 'auto-translate/client#TranslationControl',
+          component.path === '@pigment/auto-translate/client#TranslationControl',
       )
 
       // Add TranslationControl if not already present
@@ -55,7 +55,7 @@ export function injectTranslationControls(
             defaultLocale, // Pass default locale to component
             fieldPath,
           },
-          path: 'auto-translate/client#TranslationControl',
+          path: '@pigment/auto-translate/client#TranslationControl',
         })
       }
     }
