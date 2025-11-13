@@ -22,11 +22,11 @@ A powerful auto-translation plugin for [Payload CMS](https://payloadcms.com) tha
 ## 🚀 Installation
 
 ```bash
-npm install auto-translate
+npm install @pigment/auto-translate
 # or
-pnpm add auto-translate
+pnpm add @pigment/auto-translate
 # or
-yarn add auto-translate
+yarn add @pigment/auto-translate
 ```
 
 ## ⚙️ Configuration
@@ -34,7 +34,7 @@ yarn add auto-translate
 ### Basic Setup
 
 ```typescript
-import { autoTranslate } from 'auto-translate'
+import { autoTranslate } from '@pigment/auto-translate'
 import { buildConfig } from 'payload'
 
 export default buildConfig({
@@ -81,7 +81,7 @@ OPENAI_BASE_URL=https://api.openai.com/v1
 ### Full Configuration Options
 
 ```typescript
-import { autoTranslate } from 'auto-translate'
+import { autoTranslate } from '@pigment/auto-translate'
 
 export default buildConfig({
   plugins: [
@@ -166,6 +166,7 @@ autoTranslate({
 ```
 
 **When disabled**:
+
 - ❌ No translation exclusions collection
 - ❌ No 🌐/🔒 buttons on fields
 - ✅ All localized fields are always translated
