@@ -20,7 +20,15 @@ export function injectTranslationControls(
     const clonedField: any = { ...field }
 
     // Inject TranslationControl if the field is localized
-    if ('localized' in clonedField && clonedField.localized === true) {
+    // Skip for container fields - they're just UI/structural, not actual data fields
+    // Only their nested fields should have translation controls
+    const shouldSkipControl =
+      clonedField.type === 'group' ||   // Groups are containers
+      clonedField.type === 'blocks' ||  // Blocks are containers
+      clonedField.type === 'array' ||   // Arrays are containers
+      clonedField.type === 'tabs'       // Tabs are UI containers
+
+    if ('localized' in clonedField && clonedField.localized === true && !shouldSkipControl) {
       // Initialize admin if not present
       if (!clonedField.admin) {
         clonedField.admin = {}
@@ -66,12 +74,21 @@ export function injectTranslationControls(
     }
 
     // Recursively inject into tabs
+    // Note: Tabs fields themselves don't create a path segment
+    // Named tabs (with 'name' property) create their own path segment
+    // Unnamed tabs use the parent path
     if ('tabs' in clonedField && Array.isArray(clonedField.tabs)) {
       clonedField.tabs = clonedField.tabs.map((tab: any) => {
         if (tab.fields) {
+          // If the tab has a name, use it as the path segment
+          // Otherwise, use the parent path (tabs field itself doesn't create a path)
+          const tabPath = tab.name 
+            ? (parentPath ? `${parentPath}.${tab.name}` : tab.name)
+            : parentPath
+          
           return {
             ...tab,
-            fields: injectTranslationControls(tab.fields, defaultLocale, fieldPath),
+            fields: injectTranslationControls(tab.fields, defaultLocale, tabPath),
           }
         }
         return tab

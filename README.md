@@ -121,6 +121,10 @@ export default buildConfig({
 
       // Optional: Custom collection slug for metadata
       translationExclusionsSlug: 'translation-exclusions',
+
+      // Optional: Disable field-level exclusions entirely (default: true)
+      // When disabled: no exclusion UI, no exclusion collection
+      enableExclusions: true,
     }),
   ],
 })
@@ -145,6 +149,29 @@ collections: {
   },
 }
 ```
+
+### Disabling Field-Level Exclusions
+
+For simpler setups, you can disable the field-level exclusion system entirely:
+
+```typescript
+autoTranslate({
+  collections: {
+    posts: true,
+    pages: true,
+  },
+  enableExclusions: false, // Disable field-level locking
+  excludeFields: ['slug'], // Global exclusions still work
+})
+```
+
+**When disabled**:
+- ❌ No translation exclusions collection
+- ❌ No 🌐/🔒 buttons on fields
+- ✅ All localized fields are always translated
+- ✅ Global/collection `excludeFields` still work
+
+📖 **[Read the Disable Exclusions Guide](./DISABLE_EXCLUSIONS.md)** for detailed information.
 
 ### Custom Translation Provider
 

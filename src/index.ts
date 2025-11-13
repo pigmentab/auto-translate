@@ -32,16 +32,22 @@ export const autoTranslate =
       ? localizationConfig.locales.map((l) => (typeof l === 'string' ? l : l.code))
       : []
 
+    // Default enableExclusions to true for backward compatibility
+    const enableExclusions = pluginOptions.enableExclusions !== false
+
     if (pluginOptions.debugging) {
       console.log('[Auto-Translate Plugin] Configuration:')
       console.log('- Default locale:', defaultLocale)
       console.log('- All locales:', allLocales)
       console.log('- Enabled collections:', Object.keys(pluginOptions.collections || {}))
+      console.log('- Exclusions enabled:', enableExclusions)
     }
 
-    // Add translation exclusions collection
-    const exclusionsSlug = pluginOptions.translationExclusionsSlug || 'translation-exclusions'
-    config.collections.push(getTranslationExclusionsCollection(exclusionsSlug))
+    // Add translation exclusions collection (only if exclusions are enabled)
+    if (enableExclusions) {
+      const exclusionsSlug = pluginOptions.translationExclusionsSlug || 'translation-exclusions'
+      config.collections.push(getTranslationExclusionsCollection(exclusionsSlug))
+    }
 
     // Add translation settings global
     if (!config.globals) {
@@ -87,7 +93,8 @@ export const autoTranslate =
         })
 
         // Auto-inject TranslationControl component into all localized fields
-        if (pluginOptions.autoInjectUI !== false) {
+        // Only inject if exclusions are enabled (otherwise there's nothing to control)
+        if (enableExclusions && pluginOptions.autoInjectUI !== false) {
           collection.fields = injectTranslationControls(collection.fields, defaultLocale)
 
           if (pluginOptions.debugging) {
@@ -160,13 +167,16 @@ export const autoTranslate =
                 )
               }
 
-              // Get field-level exclusions for this locale
-              const excludedPaths = await translationService.getExclusions(
-                req.payload,
-                collectionSlug,
-                doc.id,
-                targetLocale,
-              )
+              // Get field-level exclusions for this locale (only if exclusions are enabled)
+              let excludedPaths: string[] = []
+              if (enableExclusions) {
+                excludedPaths = await translationService.getExclusions(
+                  req.payload,
+                  collectionSlug,
+                  doc.id,
+                  targetLocale,
+                )
+              }
 
               // Get global/collection-level excluded fields
               const configExcludedFields =
@@ -180,21 +190,24 @@ export const autoTranslate =
               }
 
               // Get existing document in target locale to preserve excluded fields
+              // Only needed if exclusions are enabled
               let existingDoc: any = null
-              try {
-                const existingResult = await req.payload.findByID({
-                  id: doc.id,
-                  collection: collectionSlug,
-                  fallbackLocale: false,
-                  locale: targetLocale,
-                })
-                existingDoc = existingResult
-              } catch (error) {
-                // Document doesn't exist in this locale yet, that's okay
-                if (pluginOptions.debugging) {
-                  req.payload.logger.info(
-                    `[Auto-Translate Plugin] No existing document for ${targetLocale}, will create new`,
-                  )
+              if (enableExclusions && allExcludedPaths.length > 0) {
+                try {
+                  const existingResult = await req.payload.findByID({
+                    id: doc.id,
+                    collection: collectionSlug,
+                    fallbackLocale: false,
+                    locale: targetLocale,
+                  })
+                  existingDoc = existingResult
+                } catch (error) {
+                  // Document doesn't exist in this locale yet, that's okay
+                  if (pluginOptions.debugging) {
+                    req.payload.logger.info(
+                      `[Auto-Translate Plugin] No existing document for ${targetLocale}, will create new`,
+                    )
+                  }
                 }
               }
 

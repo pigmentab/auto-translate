@@ -8,18 +8,27 @@ import './TranslationControl.css'
 type TranslationControlProps = {
   collectionSlug?: string
   defaultLocale: string
-  fieldPath: string
+  fieldPath?: string // Optional - will be inferred from Payload's path prop if not provided
+  path?: string // Payload provides this at runtime with array/block indices
 }
 
 /**
  * UI component that allows users to toggle "do not translate" for specific fields
  * Only shows on secondary locales (not the default locale)
+ * 
+ * The component can receive the field path in two ways:
+ * 1. From Payload's `path` prop (preferred - includes runtime array/block indices)
+ * 2. From the `fieldPath` clientProp (fallback - static path from field definition)
  */
 export const TranslationControl: React.FC<TranslationControlProps> = ({
   collectionSlug,
   defaultLocale,
-  fieldPath,
+  fieldPath: clientFieldPath,
+  path: payloadPath,
 }) => {
+  // Use Payload's runtime path if available (includes array/block indices like "layout.0.heading")
+  // Otherwise fall back to the static path from clientProps
+  const fieldPath = payloadPath || clientFieldPath
   const { id, collectionSlug: docCollectionSlug } = useDocumentInfo()
   const { code: currentLocale } = useLocale()
   const [isExcluded, setIsExcluded] = useState(false)
@@ -33,23 +42,22 @@ export const TranslationControl: React.FC<TranslationControlProps> = ({
     return null
   }
 
+  // Don't show if we don't have a valid field path
+  if (!fieldPath) {
+    console.warn('[TranslationControl] No field path available')
+    return null
+  }
+
   // Load exclusion state on mount and when locale changes
   useEffect(() => {
+    // Reset state when switching documents or when there's no ID (new document)
     if (!id || !effectiveCollectionSlug) {
+      setIsExcluded(false) // Reset to default state
       return
     }
 
     const loadExclusionState = async () => {
       try {
-        // Build query for this specific locale
-        const whereQuery = {
-          and: [
-            { collection: { equals: effectiveCollectionSlug } },
-            { documentId: { equals: id } },
-            { locale: { equals: currentLocale } },
-          ],
-        }
-
         console.log('[TranslationControl] Loading exclusion state for:', {
           collection: effectiveCollectionSlug,
           documentId: id,
@@ -57,12 +65,25 @@ export const TranslationControl: React.FC<TranslationControlProps> = ({
           locale: currentLocale,
         })
 
+        // Build query for this specific locale AND document ID
+        const whereQuery = {
+          and: [
+            { collection: { equals: effectiveCollectionSlug } },
+            { documentId: { equals: id } }, // This ensures we only get exclusions for THIS document
+            { locale: { equals: currentLocale } },
+          ],
+        }
+
         const queryString = new URLSearchParams({
           limit: '1',
           where: JSON.stringify(whereQuery),
         }).toString()
 
-        const response = await fetch(`/api/translation-exclusions?${queryString}`)
+        const fullUrl = `/api/translation-exclusions?${queryString}`
+        console.log('[TranslationControl] Query URL:', fullUrl)
+        console.log('[TranslationControl] Where clause:', whereQuery)
+
+        const response = await fetch(fullUrl)
 
         if (response.ok) {
           const data = await response.json()
@@ -70,12 +91,12 @@ export const TranslationControl: React.FC<TranslationControlProps> = ({
           if (data.docs && data.docs.length > 0) {
             const exclusion = data.docs[0]
 
-            // IMPORTANT: Double-check the locale matches
-            if (exclusion.locale === currentLocale) {
+            // CRITICAL: Verify this exclusion belongs to THIS document AND locale
+            if (exclusion.locale === currentLocale && exclusion.documentId === id) {
               const excludedPaths = exclusion.excludedPaths?.map((item: any) => item.path) || []
               const isFieldExcluded = excludedPaths.includes(fieldPath)
 
-              console.log('[TranslationControl] Loaded exclusions for', currentLocale, ':', {
+              console.log('[TranslationControl] Loaded exclusions for document', id, 'locale', currentLocale, ':', {
                 excludedPaths,
                 fieldPath,
                 isFieldExcluded,
@@ -83,15 +104,18 @@ export const TranslationControl: React.FC<TranslationControlProps> = ({
 
               setIsExcluded(isFieldExcluded)
             } else {
-              console.warn('[TranslationControl] Locale mismatch in loaded exclusion!', {
-                expected: currentLocale,
-                got: exclusion.locale,
+              console.warn('[TranslationControl] Document/Locale mismatch in loaded exclusion!', {
+                expectedLocale: currentLocale,
+                expectedDocId: id,
+                gotLocale: exclusion.locale,
+                gotDocId: exclusion.documentId,
               })
+              // This exclusion is for a different document - ignore it
               setIsExcluded(false)
             }
           } else {
-            // No exclusions found for this locale - that's fine
-            console.log('[TranslationControl] No exclusions found for', currentLocale)
+            // No exclusions found for this document/locale - that's fine
+            console.log('[TranslationControl] No exclusions found for document', id, 'locale', currentLocale)
             setIsExcluded(false)
           }
         }
@@ -133,7 +157,11 @@ export const TranslationControl: React.FC<TranslationControlProps> = ({
         where: JSON.stringify(whereQuery),
       }).toString()
 
-      const findResponse = await fetch(`/api/translation-exclusions?${queryString}`)
+      const fullUrl = `/api/translation-exclusions?${queryString}`
+      console.log('[TranslationControl] Toggle - Query URL:', fullUrl)
+      console.log('[TranslationControl] Toggle - Where clause:', whereQuery)
+
+      const findResponse = await fetch(fullUrl)
 
       let currentExcludedPaths: string[] = []
       let existingId: null | string = null
@@ -145,21 +173,28 @@ export const TranslationControl: React.FC<TranslationControlProps> = ({
         if (data.docs && data.docs.length > 0) {
           const exclusion = data.docs[0]
 
-          // IMPORTANT: Verify this exclusion is for the current locale
-          if (exclusion.locale === currentLocale) {
+          // CRITICAL: Verify this exclusion belongs to THIS document AND locale
+          if (exclusion.locale === currentLocale && exclusion.documentId === id) {
             existingId = exclusion.id
             currentExcludedPaths = exclusion.excludedPaths?.map((item: any) => item.path) || []
             console.log(
-              '[TranslationControl] Current excluded paths for',
+              '[TranslationControl] Current excluded paths for document',
+              id,
+              'locale',
               currentLocale,
               ':',
               currentExcludedPaths,
             )
           } else {
-            console.warn('[TranslationControl] Found exclusion for wrong locale!', {
-              expected: currentLocale,
-              got: exclusion.locale,
+            console.warn('[TranslationControl] Found exclusion for wrong document/locale!', {
+              expectedLocale: currentLocale,
+              expectedDocId: id,
+              gotLocale: exclusion.locale,
+              gotDocId: exclusion.documentId,
             })
+            // Don't use this record - it's for a different document
+            existingId = null
+            currentExcludedPaths = []
           }
         }
       }

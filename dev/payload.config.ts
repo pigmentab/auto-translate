@@ -75,6 +75,217 @@ const buildConfigWithMemoryDB = async () => {
         },
       },
       {
+        slug: 'pages',
+        fields: [
+          {
+            name: 'title',
+            type: 'text',
+            localized: true,
+            required: true,
+          },
+          {
+            name: 'slug',
+            type: 'text',
+            required: true,
+          },
+          // Test group field (should NOT show control on group itself, only on nested fields)
+          {
+            name: 'seo',
+            type: 'group',
+            fields: [
+              {
+                name: 'metaTitle',
+                type: 'text',
+                label: 'Meta Title',
+                localized: true,
+              },
+              {
+                name: 'metaDescription',
+                type: 'textarea',
+                label: 'Meta Description',
+                localized: true,
+              },
+            ],
+            label: 'SEO Settings',
+            localized: true,
+          },
+          // Test blocks field (should show controls on fields inside blocks)
+          {
+            name: 'layout',
+            type: 'blocks',
+            blocks: [
+              {
+                slug: 'hero',
+                fields: [
+                  {
+                    name: 'heading',
+                    type: 'text',
+                    label: 'Hero Heading',
+                    localized: true,
+                    required: true,
+                  },
+                  {
+                    name: 'subheading',
+                    type: 'textarea',
+                    label: 'Subheading',
+                    localized: true,
+                  },
+                  {
+                    name: 'ctaText',
+                    type: 'text',
+                    label: 'CTA Button Text',
+                    localized: true,
+                  },
+                ],
+              },
+              {
+                slug: 'content',
+                fields: [
+                  {
+                    name: 'heading',
+                    type: 'text',
+                    label: 'Content Heading',
+                    localized: true,
+                  },
+                  {
+                    name: 'text',
+                    type: 'richText',
+                    label: 'Content',
+                    localized: true,
+                  },
+                ],
+              },
+            ],
+            label: 'Page Layout',
+            localized: true,
+          },
+          // Test array field with nested localized fields
+          {
+            name: 'features',
+            type: 'array',
+            fields: [
+              {
+                name: 'title',
+                type: 'text',
+                label: 'Feature Title',
+                localized: true,
+              },
+              {
+                name: 'description',
+                type: 'textarea',
+                label: 'Feature Description',
+                localized: true,
+              },
+            ],
+            label: 'Features',
+            localized: true,
+          },
+        ],
+        versions: {
+          drafts: {
+            autosave: true,
+          },
+        },
+      },
+      {
+        slug: 'landing-pages',
+        fields: [
+          {
+            name: 'title',
+            type: 'text',
+            localized: true,
+            required: true,
+          },
+          // Test tabs field (should NOT show control on tabs field itself)
+          {
+            name: 'contentFields',
+            type: 'tabs',
+            tabs: [
+              {
+                label: 'Hero',
+                // Unnamed tab - fields use their natural paths
+                fields: [
+                  {
+                    name: 'hero',
+                    type: 'group',
+                    fields: [
+                      {
+                        name: 'label',
+                        type: 'text',
+                        label: 'Hero Label',
+                        localized: true,
+                      },
+                      {
+                        name: 'title',
+                        type: 'text',
+                        label: 'Hero Title',
+                        localized: true,
+                      },
+                      {
+                        name: 'description',
+                        type: 'textarea',
+                        label: 'Hero Description',
+                        localized: true,
+                      },
+                    ],
+                    label: 'Page Hero',
+                    localized: true,
+                  },
+                ],
+              },
+              {
+                label: 'Content',
+                // Unnamed tab
+                fields: [
+                  {
+                    name: 'layout',
+                    type: 'blocks',
+                    blocks: [
+                      {
+                        slug: 'text',
+                        fields: [
+                          {
+                            name: 'content',
+                            type: 'textarea',
+                            localized: true,
+                          },
+                        ],
+                      },
+                    ],
+                    localized: true,
+                  },
+                ],
+              },
+              {
+                name: 'meta',
+                label: 'SEO',
+                // Named tab - fields are under 'meta' path
+                fields: [
+                  {
+                    name: 'metaTitle',
+                    type: 'text',
+                    label: 'Meta Title',
+                    localized: true,
+                  },
+                  {
+                    name: 'metaDescription',
+                    type: 'textarea',
+                    label: 'Meta Description',
+                    localized: true,
+                  },
+                ],
+                localized: true,
+              },
+            ],
+          },
+        ],
+        versions: {
+          drafts: {
+            autosave: true,
+          },
+        },
+      },
+      {
         slug: 'media',
         fields: [],
         upload: {
@@ -111,10 +322,13 @@ const buildConfigWithMemoryDB = async () => {
     },
     plugins: [
       autoTranslate({
+        autoInjectUI: true, // Enable auto-injection of translation controls
         collections: {
+          'landing-pages': true, // Test tabs field
+          pages: true, // Test blocks/groups
           posts: true,
         },
-        debugging: true,
+        debugging: true, // Enable to see what's happening
         enableTranslationSyncByDefault: true,
         provider: {
           type: 'openai',

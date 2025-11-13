@@ -13,7 +13,7 @@ export const getTranslationExclusionsCollection = (
   admin: {
     defaultColumns: ['collection', 'documentId', 'locale', 'excludedPaths'],
     description:
-      'Stores field-level translation exclusions per document and locale. Each locale can have its own set of excluded fields.',
+      'Stores field-level translation exclusions per document and locale. Each locale can have its own set of excluded fields. There should only be ONE record per (collection, documentId, locale) combination.',
     group: 'Settings',
     useAsTitle: 'collection',
   },

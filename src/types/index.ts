@@ -3,6 +3,7 @@ import type { CollectionSlug, Payload } from 'payload'
 export type AutoTranslateConfig = {
   /**
    * Auto-inject translation control UI into all localized fields (default: true)
+   * Note: This is ignored if enableExclusions is false
    */
   autoInjectUI?: boolean
 
@@ -10,6 +11,15 @@ export type AutoTranslateConfig = {
    * List of collections to enable auto-translation
    */
   collections?: Partial<Record<CollectionSlug, boolean | CollectionTranslateConfig>>
+
+  /**
+   * Enable field-level translation exclusions (default: true)
+   * When disabled:
+   * - Translation exclusions collection is hidden
+   * - Translation control buttons are not added to fields
+   * - All localized fields are always translated
+   */
+  enableExclusions?: boolean
 
   /**
    * Show debug logs

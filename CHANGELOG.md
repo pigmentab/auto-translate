@@ -2,6 +2,42 @@
 
 All notable changes to the Auto-Translate plugin will be documented in this file.
 
+## [Unreleased]
+
+### ✨ Features
+
+- **New: `enableExclusions` config option** - Ability to completely disable field-level exclusions
+  - When `false`: No exclusions collection, no translation control buttons, simpler setup
+  - When `true` (default): Full featured with field-level locking
+  - Global/collection-level `excludeFields` still work regardless of this setting
+  - See [DISABLE_EXCLUSIONS.md](./DISABLE_EXCLUSIONS.md) for details
+
+### 🐛 Bug Fixes
+
+- **Fixed translation exclusions being shared across documents**
+  - Added double verification: query filters by documentId AND response is validated
+  - Component now properly resets state when switching between documents
+  - Added extensive logging for debugging
+  
+- **Fixed duplicate translation controls on group/blocks/array/tabs fields**
+  - Container fields no longer show translation controls
+  - Only actual data fields within containers show controls
+  
+- **Fixed translation controls not appearing for fields inside tabs**
+  - Correct path handling for unnamed tabs (use root path)
+  - Correct path handling for named tabs (use tab name as prefix)
+  - Added test collection `landing-pages` to verify tabs support
+
+### 📚 Documentation
+
+- **New: DISABLE_EXCLUSIONS.md** - Comprehensive guide for disabling exclusions
+- **New: TABS_FIELD_FIX.md** - Documentation for tabs field support
+- **New: DOCUMENT_ISOLATION_TEST.md** - Testing guide for document isolation
+- **New: BUGFIX_SUMMARY.md** - Summary of all bug fixes
+- Updated README with `enableExclusions` option
+
+---
+
 ## [1.1.0] - 2025-11-10
 
 ### ⚡ Performance Improvements
