@@ -2,7 +2,16 @@
 
 All notable changes to the Auto-Translate plugin will be documented in this file.
 
-## [Unreleased]
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+---
+
+## [1.2.0] - 2025-11-13
+
+### 🎉 Production Ready Release
+
+This release marks the plugin as production-ready with improved documentation, cleaned codebase, and proper package metadata.
 
 ### ✨ Features
 
@@ -10,7 +19,6 @@ All notable changes to the Auto-Translate plugin will be documented in this file
   - When `false`: No exclusions collection, no translation control buttons, simpler setup
   - When `true` (default): Full featured with field-level locking
   - Global/collection-level `excludeFields` still work regardless of this setting
-  - See [DISABLE_EXCLUSIONS.md](./DISABLE_EXCLUSIONS.md) for details
 
 ### 🐛 Bug Fixes
 
@@ -18,11 +26,9 @@ All notable changes to the Auto-Translate plugin will be documented in this file
   - Added double verification: query filters by documentId AND response is validated
   - Component now properly resets state when switching between documents
   - Added extensive logging for debugging
-  
 - **Fixed duplicate translation controls on group/blocks/array/tabs fields**
   - Container fields no longer show translation controls
   - Only actual data fields within containers show controls
-  
 - **Fixed translation controls not appearing for fields inside tabs**
   - Correct path handling for unnamed tabs (use root path)
   - Correct path handling for named tabs (use tab name as prefix)
@@ -30,11 +36,16 @@ All notable changes to the Auto-Translate plugin will be documented in this file
 
 ### 📚 Documentation
 
-- **New: DISABLE_EXCLUSIONS.md** - Comprehensive guide for disabling exclusions
-- **New: TABS_FIELD_FIX.md** - Documentation for tabs field support
-- **New: DOCUMENT_ISOLATION_TEST.md** - Testing guide for document isolation
-- **New: BUGFIX_SUMMARY.md** - Summary of all bug fixes
-- Updated README with `enableExclusions` option
+- **Enhanced README**: Added comprehensive support section and updated links
+- **Updated repository information**: Proper author, email, and website metadata
+- **Improved CHANGELOG**: Following Keep a Changelog format with semantic versioning
+
+### 🧹 Maintenance
+
+- Removed temporary and test files (dev.log, optimization-test.js)
+- Enhanced `.gitignore` with comprehensive exclusions
+- Added proper package metadata (author, homepage, repository)
+- Cleaned up project structure for npm publication
 
 ---
 
@@ -47,7 +58,6 @@ All notable changes to the Auto-Translate plugin will be documented in this file
   - String deduplication: Identical strings translated once and reused
   - Enhanced Lexical editor support: Skips empty paragraphs and whitespace-only nodes
   - Configurable minimum string length threshold
-  
 - **New configuration options**:
   - `minStringLength` (default: 3): Minimum characters to translate
   - `enableDeduplication` (default: true): Toggle string deduplication
@@ -64,12 +74,10 @@ All notable changes to the Auto-Translate plugin will be documented in this file
   - Better whitespace detection (skips single spaces)
   - Configurable minimum string length
   - Improved short string handling
-  
 - Lexical editor optimizations:
   - Automatically skips whitespace-only text nodes
   - Preserves document structure while extracting only translatable text
   - Special handling for empty paragraphs
-  
 - Better debugging:
   - Visual optimization stats with emojis (📊, 🔄, 💾, 📦, 🎯)
   - Shows unique vs total string counts
@@ -315,21 +323,23 @@ None (initial release)
 
 ## Support
 
-- **Issues**: https://github.com/yourusername/auto-translate/issues
-- **Discussions**: https://github.com/yourusername/auto-translate/discussions
+- **Issues**: https://github.com/pigment-se/auto-translate/issues
+- **Discussions**: https://github.com/pigment-se/auto-translate/discussions
+- **Website**: https://pigment.se
+- **Email**: dev@pigment.se
 - **Discord**: Join Payload CMS Discord
 
 ---
 
 ## Contributors
 
-- [@ritesh](https://github.com/ritesh) - Initial implementation
+- **Team Pigment** - Development and maintenance
 
 ---
 
 ## License
 
-MIT License - see [LICENSE.md](./LICENSE.md) for details
+MIT License - see [LICENSE](./LICENSE) for details
 
 ---
 
@@ -338,4 +348,3 @@ MIT License - see [LICENSE.md](./LICENSE.md) for details
 - Inspired by [@ashbuilds/payload-ai](https://github.com/ashbuilds/payload-ai)
 - Built with [Payload CMS](https://payloadcms.com)
 - Powered by [OpenAI](https://openai.com)
-

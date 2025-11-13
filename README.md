@@ -171,8 +171,6 @@ autoTranslate({
 - ✅ All localized fields are always translated
 - ✅ Global/collection `excludeFields` still work
 
-📖 **[Read the Disable Exclusions Guide](./DISABLE_EXCLUSIONS.md)** for detailed information.
-
 ### Custom Translation Provider
 
 If you don't want to use OpenAI, you can provide your own translation function:
@@ -344,8 +342,6 @@ The plugin includes intelligent optimizations that make translation 10-15x faste
 
 For large documents with Lexical editor content, translation time can be reduced from 30-120 seconds to just 3-10 seconds.
 
-📖 **[Read the Performance Optimization Guide](./PERFORMANCE_OPTIMIZATION.md)** for detailed configuration options and best practices.
-
 ---
 
 ## 🧪 Testing
@@ -400,9 +396,10 @@ Inspired by the excellent [payload-ai plugin](https://github.com/ashbuilds/paylo
 If you have questions or need help:
 
 1. Check the [Payload CMS documentation](https://payloadcms.com/docs)
-2. Open an issue on GitHub
+2. Open an issue on [GitHub](https://github.com/pigment-se/auto-translate/issues)
 3. Join the [Payload Discord](https://discord.gg/payload)
+4. Visit [pigment.se](https://pigment.se)
 
 ---
 
-**Made with ❤️ for the Payload CMS community**
+**Made with ❤️ by Team Pigment for the Payload CMS community**
