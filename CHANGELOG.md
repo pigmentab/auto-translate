@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.1] - 2025-11-14
+
+### 🐛 Bug Fixes
+
+- **Fixed hook compatibility with Payload CMS 3.37+**
+  - Migrated from deprecated `afterChange` hook to `afterOperation` hook
+  - Changed operation detection from `'update'` to `'updateByID'` to match new hook API
+  - Updated hook arguments to use `result` instead of `doc` for better compatibility
+  - Added `req` parameter to `payload.update()` calls for proper context propagation
+  - Fixed document ID handling with `.toString()` conversion for better type safety
+
+- **Fixed context propagation in hook prevention**
+  - Added safety check for `req` existence before accessing `context`
+  - Improved infinite loop prevention with more robust context checking
+  - Better handling of hooks that don't have `req` in arguments
+
+### ✨ Features
+
+- **Exported TranslationService for direct use**
+  - Added `TranslationService` export to main plugin and RSC exports
+  - Made `translateWithOpenAI()` method public for direct programmatic access
+  - Enables custom translation workflows outside of the automatic hook system
+  - Useful for batch operations, custom triggers, or API endpoints
+
+### 🔧 Improvements
+
+- **Enhanced debugging and error logging**
+  - Added operation type logging for better debugging
+  - Improved error messages for missing documents or invalid operations
+  - Better visibility into hook execution flow
+
+---
+
 ## [1.3.0] - 2025-11-13
 
 ### ✨ Features

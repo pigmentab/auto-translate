@@ -9,6 +9,7 @@ import { injectTranslationControls } from './utilities/injectTranslationControls
 
 export { getTranslationExclusionsCollection } from './collections/translationExclusions.js'
 export { getTranslationSettingsGlobal } from './globals/translationSettings.js'
+export { TranslationService } from './services/translationService.js'
 export * from './types/index.js'
 
 export const autoTranslate =
@@ -107,16 +108,33 @@ export const autoTranslate =
           collection.hooks = {}
         }
 
-        if (!collection.hooks.afterChange) {
-          collection.hooks.afterChange = []
+        if (!collection.hooks.afterOperation) {
+          collection.hooks.afterOperation = []
         }
 
         // Main translation hook
-        collection.hooks.afterChange.push(async ({ doc, operation, previousDoc, req }) => {
+        collection.hooks.afterOperation.push(async ({ operation, req, result }) => {
           // Only process create and update operations
-          if (operation !== 'create' && operation !== 'update') {
-            return doc
+          if (operation !== 'create' && operation !== 'updateByID') {
+            if (pluginOptions.debugging) {
+              req.payload.logger.error(
+                `[Auto-Translate Plugin] Skipping translation - not create or update operation: ${operation}`,
+              )
+            }
+            return result
           }
+
+          // For create/update operations, result should have a id property
+          if (!result || typeof result !== 'object' || !('id' in result)) {
+            if (pluginOptions.debugging) {
+              req.payload.logger.error(
+                `[Auto-Translate Plugin] No document found in result: ${JSON.stringify(result)}`,
+              )
+            }
+            return result
+          }
+
+          const doc = result
 
           // Only translate if editing from default locale
           if (req.locale !== defaultLocale) {
@@ -125,7 +143,7 @@ export const autoTranslate =
                 `[Auto-Translate Plugin] Skipping translation - not default locale (current: ${req.locale}, default: ${defaultLocale})`,
               )
             }
-            return doc
+            return result
           }
 
           // Skip translation for drafts when autosave is enabled
@@ -136,7 +154,7 @@ export const autoTranslate =
                 `[Auto-Translate Plugin] Skipping translation - document is a draft (status: ${doc._status})`,
               )
             }
-            return doc
+            return result
           }
 
           // Check if translation sync is enabled
@@ -146,7 +164,7 @@ export const autoTranslate =
                 `[Auto-Translate Plugin] Skipping translation - translationSync disabled for ${collectionSlug}:${doc.id}`,
               )
             }
-            return doc
+            return result
           }
 
           if (pluginOptions.debugging) {
@@ -173,7 +191,7 @@ export const autoTranslate =
                 excludedPaths = await translationService.getExclusions(
                   req.payload,
                   collectionSlug,
-                  doc.id,
+                  doc.id.toString(),
                   targetLocale,
                 )
               }
@@ -243,6 +261,7 @@ export const autoTranslate =
                 context: {
                   skipAutoTranslate: true,
                 },
+                req,
               })
 
               if (pluginOptions.debugging) {
@@ -282,27 +301,28 @@ export const autoTranslate =
             }
           }
 
-          return doc
+          return result
         })
 
         // Prevent infinite loops - skip translation if triggered by our own update
-        const originalAfterChangeHooks = [...(collection.hooks.afterChange || [])]
-        collection.hooks.afterChange = [
+        const originalAfterOperationHooks = [...(collection.hooks.afterOperation || [])]
+        collection.hooks.afterOperation = [
           async (args) => {
             // Skip if this update was triggered by auto-translate
-            if (args.context?.skipAutoTranslate) {
-              return args.doc
+            // Context might not be available on all operations
+            if ('req' in args && args.req?.context?.skipAutoTranslate) {
+              return args.result
             }
 
             // Run all hooks including translation
-            for (const hook of originalAfterChangeHooks) {
+            for (const hook of originalAfterOperationHooks) {
               const result = await hook(args)
               if (result !== undefined) {
-                args.doc = result
+                args.result = result
               }
             }
 
-            return args.doc
+            return args.result
           },
         ]
 

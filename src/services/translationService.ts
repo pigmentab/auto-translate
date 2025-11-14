@@ -390,9 +390,146 @@ export class TranslationService {
   }
 
   /**
-   * Translates using OpenAI API (optimized version)
+   * Legacy translation method (sends entire structure)
    */
-  private async translateWithOpenAI(
+  private async translateWithOpenAILegacy(
+    data: any,
+    fromLocale: string,
+    toLocale: string,
+    payload: Payload,
+  ): Promise<any> {
+    const client = this.getOpenAIClient()
+    const timeout = this.config.provider?.timeout || 30000
+
+    try {
+      // Get translation settings from global
+      const settings = await this.getTranslationSettings(payload)
+
+      // Build system message from settings
+      const systemPrompt = settings.systemPrompt
+        .replace('{fromLocale}', fromLocale)
+        .replace('{toLocale}', toLocale)
+
+      const systemMessage = `${systemPrompt}\n\n${settings.translationRules}`
+
+      const requestParams: any = {
+        messages: [
+          {
+            content: systemMessage,
+            role: 'system',
+          },
+          {
+            content: JSON.stringify(data, null, 2),
+            role: 'user',
+          },
+        ],
+        model: settings.model,
+        response_format: { type: 'json_object' },
+        temperature: settings.temperature,
+      }
+
+      // Add maxTokens if specified
+      if (settings.maxTokens) {
+        requestParams.max_tokens = settings.maxTokens
+      }
+
+      const response = await client.chat.completions.create(requestParams, { timeout })
+
+      const translatedText = response.choices[0]?.message?.content
+
+      if (!translatedText) {
+        throw new Error('No translation received from OpenAI')
+      }
+
+      return JSON.parse(translatedText)
+    } catch (error) {
+      console.error('[Auto-Translate] Translation error:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Gets global and collection-specific excluded fields
+   */
+  getConfigExcludedFields(collection: string): string[] {
+    const globalExclusions = this.config.excludeFields || []
+    const collectionConfig = this.config.collections?.[collection]
+
+    if (typeof collectionConfig === 'object' && collectionConfig.excludeFields) {
+      return [...globalExclusions, ...collectionConfig.excludeFields]
+    }
+
+    return globalExclusions
+  }
+
+  /**
+   * Gets translation exclusions for a document
+   */
+  async getExclusions(
+    payload: Payload,
+    collection: string,
+    documentId: string,
+    locale: string,
+  ): Promise<string[]> {
+    const exclusionsSlug = this.config.translationExclusionsSlug || 'translation-exclusions'
+
+    try {
+      const result = await payload.find({
+        collection: exclusionsSlug,
+        limit: 1,
+        where: {
+          and: [
+            { collection: { equals: collection } },
+            { documentId: { equals: documentId } },
+            { locale: { equals: locale } },
+          ],
+        },
+      })
+
+      if (result.docs.length > 0) {
+        const exclusion = result.docs[0] as any
+        return exclusion.excludedPaths?.map((item: any) => item.path) || []
+      }
+
+      return []
+    } catch (error) {
+      if (this.config.debugging) {
+        payload.logger.error(`[Auto-Translate] Error fetching exclusions: ${error}`)
+      }
+      return []
+    }
+  }
+
+  /**
+   * Main translation method
+   */
+  async translate(options: TranslateOptions): Promise<any> {
+    const { collection, data, excludedPaths = [], fromLocale, payload, toLocale } = options
+
+    // Filter out excluded paths before translation
+    const dataToTranslate = filterExcludedPaths(data, excludedPaths)
+
+    if (this.config.debugging) {
+      payload.logger.info(
+        `[Auto-Translate] Translating from ${fromLocale} to ${toLocale} for collection ${collection}`,
+      )
+      payload.logger.info(`[Auto-Translate] Excluded paths: ${excludedPaths.join(', ')}`)
+    }
+
+    // Use custom translator if provided
+    if (this.config.provider?.customTranslate) {
+      return await this.config.provider.customTranslate(options)
+    }
+
+    // Use OpenAI by default
+    return await this.translateWithOpenAI(dataToTranslate, fromLocale, toLocale, payload)
+  }
+
+  /**
+   * Translates using OpenAI API (optimized version)
+   * This method is now public and can be used directly in your application
+   */
+  async translateWithOpenAI(
     data: any,
     fromLocale: string,
     toLocale: string,
@@ -550,142 +687,6 @@ export class TranslationService {
       contextualError.cause = error
       throw contextualError
     }
-  }
-
-  /**
-   * Legacy translation method (sends entire structure)
-   */
-  private async translateWithOpenAILegacy(
-    data: any,
-    fromLocale: string,
-    toLocale: string,
-    payload: Payload,
-  ): Promise<any> {
-    const client = this.getOpenAIClient()
-    const timeout = this.config.provider?.timeout || 30000
-
-    try {
-      // Get translation settings from global
-      const settings = await this.getTranslationSettings(payload)
-
-      // Build system message from settings
-      const systemPrompt = settings.systemPrompt
-        .replace('{fromLocale}', fromLocale)
-        .replace('{toLocale}', toLocale)
-
-      const systemMessage = `${systemPrompt}\n\n${settings.translationRules}`
-
-      const requestParams: any = {
-        messages: [
-          {
-            content: systemMessage,
-            role: 'system',
-          },
-          {
-            content: JSON.stringify(data, null, 2),
-            role: 'user',
-          },
-        ],
-        model: settings.model,
-        response_format: { type: 'json_object' },
-        temperature: settings.temperature,
-      }
-
-      // Add maxTokens if specified
-      if (settings.maxTokens) {
-        requestParams.max_tokens = settings.maxTokens
-      }
-
-      const response = await client.chat.completions.create(requestParams, { timeout })
-
-      const translatedText = response.choices[0]?.message?.content
-
-      if (!translatedText) {
-        throw new Error('No translation received from OpenAI')
-      }
-
-      return JSON.parse(translatedText)
-    } catch (error) {
-      console.error('[Auto-Translate] Translation error:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Gets global and collection-specific excluded fields
-   */
-  getConfigExcludedFields(collection: string): string[] {
-    const globalExclusions = this.config.excludeFields || []
-    const collectionConfig = this.config.collections?.[collection]
-
-    if (typeof collectionConfig === 'object' && collectionConfig.excludeFields) {
-      return [...globalExclusions, ...collectionConfig.excludeFields]
-    }
-
-    return globalExclusions
-  }
-
-  /**
-   * Gets translation exclusions for a document
-   */
-  async getExclusions(
-    payload: Payload,
-    collection: string,
-    documentId: string,
-    locale: string,
-  ): Promise<string[]> {
-    const exclusionsSlug = this.config.translationExclusionsSlug || 'translation-exclusions'
-
-    try {
-      const result = await payload.find({
-        collection: exclusionsSlug,
-        limit: 1,
-        where: {
-          and: [
-            { collection: { equals: collection } },
-            { documentId: { equals: documentId } },
-            { locale: { equals: locale } },
-          ],
-        },
-      })
-
-      if (result.docs.length > 0) {
-        const exclusion = result.docs[0] as any
-        return exclusion.excludedPaths?.map((item: any) => item.path) || []
-      }
-
-      return []
-    } catch (error) {
-      if (this.config.debugging) {
-        payload.logger.error(`[Auto-Translate] Error fetching exclusions: ${error}`)
-      }
-      return []
-    }
-  }
-
-  /**
-   * Main translation method
-   */
-  async translate(options: TranslateOptions): Promise<any> {
-    const { collection, data, excludedPaths = [], fromLocale, payload, toLocale } = options
-
-    // Filter out excluded paths before translation
-    const dataToTranslate = filterExcludedPaths(data, excludedPaths)
-
-    if (this.config.debugging) {
-      payload.logger.info(
-        `[Auto-Translate] Translating from ${fromLocale} to ${toLocale} for collection ${collection}`,
-      )
-      payload.logger.info(`[Auto-Translate] Excluded paths: ${excludedPaths.join(', ')}`)
-    }
-
-    // Use custom translator if provided
-    if (this.config.provider?.customTranslate) {
-      return await this.config.provider.customTranslate(options)
-    }
-
-    // Use OpenAI by default
-    return await this.translateWithOpenAI(dataToTranslate, fromLocale, toLocale, payload)
   }
 
   /**
