@@ -1,6 +1,6 @@
 import { mongooseAdapter } from '@payloadcms/db-mongodb'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
-import { autoTranslate } from 'auto-translate'
+import { autoTranslate } from '@pigment/auto-translate'
 import { MongoMemoryReplSet } from 'mongodb-memory-server'
 import path from 'path'
 import { buildConfig } from 'payload'
@@ -318,22 +318,18 @@ const buildConfigWithMemoryDB = async () => {
       ],
     },
     onInit: async (payload) => {
+      // Auto-seed on first run (skips if data exists)
+      // To disable auto-seeding, comment out the line below
       await seed(payload)
     },
     plugins: [
       autoTranslate({
-        autoInjectUI: true, // Enable auto-injection of translation controls
+        autoInjectUI: false, // Enable auto-injection of translation controls
         collections: {
-          'landing-pages': true, // Test tabs field
-          pages: true, // Test blocks/groups
           posts: true,
         },
-        debugging: true, // Enable to see what's happening
+        disabled: true,
         enableTranslationSyncByDefault: true,
-        provider: {
-          type: 'openai',
-          model: 'gpt-4o',
-        },
       }),
     ],
     secret: process.env.PAYLOAD_SECRET || 'test-secret_key',

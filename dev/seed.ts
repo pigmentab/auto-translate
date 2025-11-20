@@ -6,7 +6,7 @@ export const seed = async (payload: Payload): Promise<boolean> => {
   payload.logger.info('Seeding data...')
 
   // Create dev user if not exists
-  const { totalDocs } = await payload.count({
+  const { totalDocs: userCount } = await payload.count({
     collection: 'users',
     where: {
       email: {
@@ -15,12 +15,25 @@ export const seed = async (payload: Payload): Promise<boolean> => {
     },
   })
 
-  if (!totalDocs) {
+  if (!userCount) {
     await payload.create({
       collection: 'users',
       data: devUser,
     })
     payload.logger.info('✅ Created dev user')
+  } else {
+    payload.logger.info('ℹ️  Dev user already exists')
+  }
+
+  // Check if test posts already exist
+  const { totalDocs: postCount } = await payload.count({
+    collection: 'posts',
+  })
+
+  if (postCount > 0) {
+    payload.logger.info(`ℹ️  Database already contains ${postCount} post(s) - skipping seed`)
+    payload.logger.info('💡 To re-seed, delete all posts first or run seed manually')
+    return false
   }
 
   // Create a test post in Swedish (default language)
@@ -34,16 +47,22 @@ export const seed = async (payload: Payload): Promise<boolean> => {
       ],
       description: {
         root: {
+          type: 'root',
           children: [
             {
               type: 'paragraph',
               children: [
                 {
                   text: 'Detta är en exempelpost för att testa auto-översättning.',
+                  type: 'text',
                 },
               ],
             },
           ],
+          direction: 'ltr',
+          format: '',
+          indent: 0,
+          version: 1,
         },
       },
       title: 'Välkommen till vår blogg',
@@ -69,7 +88,7 @@ export const seed = async (payload: Payload): Promise<boolean> => {
     payload.logger.error('❌ English version not found - check OPENAI_API_KEY')
   }
 
-  payload.logger.info('Seeding completed.')
+  payload.logger.info('✨ Seeding completed.')
 
   return true
 }

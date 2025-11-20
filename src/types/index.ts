@@ -109,7 +109,7 @@ export type TranslateOptions = {
 }
 
 export type TranslationExclusion = {
-  collection: CollectionSlug
+  collectionSlug: CollectionSlug
   createdAt?: string
   documentId: string
   excludedPaths: string[] // Field paths like 'title', 'content.0.description'

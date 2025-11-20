@@ -15,6 +15,14 @@ export * from './types/index.js'
 export const autoTranslate =
   (pluginOptions: AutoTranslateConfig) =>
   (config: Config): Config => {
+    // If the plugin is disabled, return config immediately without any modifications
+    if (pluginOptions.disabled) {
+      if (pluginOptions.debugging) {
+        console.log('[Auto-Translate Plugin] Plugin is disabled, skipping all modifications')
+      }
+      return config
+    }
+
     // Validate configuration
     if (!config.collections) {
       config.collections = []
@@ -294,7 +302,8 @@ export const autoTranslate =
 
               // Log additional context if it's an OpenAI error
               if (error && typeof error === 'object' && 'error' in error) {
-                req.payload.logger.error('OpenAI error details:', JSON.stringify(error, null, 2))
+                req.payload.logger.error('OpenAI error details:')
+                req.payload.logger.error(JSON.stringify(error, null, 2))
               }
 
               // Continue with other locales even if one fails
@@ -330,14 +339,6 @@ export const autoTranslate =
           console.log(`[Auto-Translate Plugin] Configured collection: ${collectionSlug}`)
         }
       }
-    }
-
-    /**
-     * If the plugin is disabled, we still want to keep added collections/fields
-     * so the database schema is consistent which is important for migrations.
-     */
-    if (pluginOptions.disabled) {
-      return config
     }
 
     return config

@@ -1,0 +1,87 @@
+.translation-settings-lock-container {
+  display: inline-flex;
+}
+
+.translation-settings-lock-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border: 1.5px solid var(--theme-elevation-400);
+  border-radius: var(--border-radius-s, 4px);
+  background: var(--theme-elevation-0);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  outline: none;
+}
+
+.translation-settings-lock-button:hover {
+  background: var(--theme-elevation-100);
+  border-color: var(--theme-elevation-500);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.translation-settings-lock-button.locked {
+  background: var(--theme-error-50);
+  border-color: var(--theme-error-500);
+  color: var(--theme-error-800);
+}
+
+.translation-settings-lock-button.locked:hover {
+  background: var(--theme-error-100);
+  border-color: var(--theme-error-600);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.12);
+}
+
+.translation-settings-lock-button.unlocked {
+  background: var(--theme-success-50);
+  border-color: var(--theme-success-500);
+  color: var(--theme-success-800);
+}
+
+.translation-settings-lock-button.unlocked:hover {
+  background: var(--theme-success-100);
+  border-color: var(--theme-success-600);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.12);
+}
+
+.translation-settings-lock-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.translation-settings-lock-label {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+/* Style for locked input fields */
+.translation-settings-locked {
+  background-color: var(--theme-elevation-50) !important;
+  cursor: not-allowed !important;
+  opacity: 0.7;
+}
+
+/* Style for locked save button */
+.translation-settings-save-locked {
+  opacity: 0.5;
+  cursor: not-allowed !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .translation-settings-lock-button {
+    font-size: 12px;
+    padding: 0.4rem 0.75rem;
+  }
+
+  .translation-settings-lock-icon {
+    font-size: 14px;
+  }
+}

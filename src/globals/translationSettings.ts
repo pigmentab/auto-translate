@@ -6,9 +6,9 @@ export const getTranslationSettingsGlobal = (
   slug,
   access: {
     read: () => true,
-    update: ({ req }) => {
+    update: () => {
       // Only admins can update translation settings
-      return Boolean(req.user)
+      return true
     },
   },
   admin: {
@@ -16,8 +16,33 @@ export const getTranslationSettingsGlobal = (
   },
   fields: [
     {
+      name: 'settingsLock',
+      type: 'ui',
+      admin: {
+        components: {
+          Field: '@pigment/auto-translate/client#LockTranslation',
+        },
+        position: 'sidebar',
+      },
+      custom: {},
+    },
+    {
+      name: 'lockTranslationSettings',
+      type: 'checkbox',
+      admin: {
+        hidden: true,
+      },
+      defaultValue: true,
+    },
+    {
       name: 'systemPrompt',
       type: 'textarea',
+      access: {
+        read: () => true,
+        update: ({ data }) => {
+          return !data?.lockTranslationSettings
+        },
+      },
       admin: {
         description:
           'The main instruction for the AI translator. Use {fromLocale} and {toLocale} as placeholders.',
@@ -30,24 +55,36 @@ export const getTranslationSettingsGlobal = (
     {
       name: 'translationRules',
       type: 'textarea',
+      access: {
+        read: () => true,
+        update: ({ data }) => {
+          return !data?.lockTranslationSettings
+        },
+      },
       admin: {
         description:
           "⚠️ Do not edit if you don't know what you are doing. These rules ensure proper JSON translation behavior.",
         rows: 8,
       },
       defaultValue: `Rules:
-- Only translate the values, never the keys
-- Preserve the exact JSON structure
-- Do not translate field names like 'id', 'createdAt', 'updatedAt', etc.
-- Maintain formatting, HTML tags, and special characters
-- Return only valid JSON without any markdown formatting or code blocks
-- If a value is already in the target language or is a proper noun, keep it as is`,
+    - Only translate the values, never the keys
+    - Preserve the exact JSON structure
+    - Do not translate field names like 'id', 'createdAt', 'updatedAt', etc.
+    - Maintain formatting, HTML tags, and special characters
+    - Return only valid JSON without any markdown formatting or code blocks
+    - If a value is already in the target language or is a proper noun, keep it as is`,
       label: 'Translation Rules',
       required: true,
     },
     {
       name: 'model',
       type: 'text',
+      access: {
+        read: () => true,
+        update: ({ data }) => {
+          return !data?.lockTranslationSettings
+        },
+      },
       admin: {
         description: 'The OpenAI model to use for translations (e.g., gpt-4o, gpt-4o-mini)',
       },
@@ -58,6 +95,12 @@ export const getTranslationSettingsGlobal = (
     {
       name: 'temperature',
       type: 'number',
+      access: {
+        read: () => true,
+        update: ({ data }) => {
+          return !data?.lockTranslationSettings
+        },
+      },
       admin: {
         description:
           'Controls randomness in translation (0.0-2.0). Lower values are more deterministic.',
@@ -72,6 +115,12 @@ export const getTranslationSettingsGlobal = (
     {
       name: 'maxTokens',
       type: 'number',
+      access: {
+        read: () => true,
+        update: ({ data }) => {
+          return !data?.lockTranslationSettings
+        },
+      },
       admin: {
         description: 'Maximum tokens for the response. Leave empty for automatic.',
       },
@@ -79,5 +128,23 @@ export const getTranslationSettingsGlobal = (
       min: 1,
     },
   ],
+  hooks: {
+    afterChange: [
+      async ({ data, req }) => {
+        if (!data?.lockTranslationSettings) {
+          console.log('Updating lockTranslationSettings to true')
+          const result = await req.payload.updateGlobal({
+            slug: 'translation-settings',
+            data: { lockTranslationSettings: true },
+            req,
+          })
+
+          console.log('RESULT ::: ', result)
+
+          return result
+        }
+      },
+    ],
+  },
   label: 'Translation Settings',
 })
