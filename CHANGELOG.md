@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.3.2] - 2025-11-20
 
+- Update repository URL in package.json to reflect correct ownership
+
+## [1.3.2] - 2025-11-20
+
 ### ✨ Features
 
 - **Translation Settings Lock** - Added lock/unlock controls to prevent accidental changes to translation settings
