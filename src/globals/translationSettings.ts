@@ -4,15 +4,9 @@ export const getTranslationSettingsGlobal = (
   slug: string = 'translation-settings',
 ): GlobalConfig => ({
   slug,
-  access: {
-    read: () => true,
-    update: () => {
-      // Only admins can update translation settings
-      return true
-    },
-  },
   admin: {
     description: 'Configure translation settings including the system prompt and model parameters',
+    group: 'Auto-Translate Settings',
   },
   fields: [
     {
@@ -24,7 +18,6 @@ export const getTranslationSettingsGlobal = (
         },
         position: 'sidebar',
       },
-      custom: {},
     },
     {
       name: 'lockTranslationSettings',
@@ -67,12 +60,12 @@ export const getTranslationSettingsGlobal = (
         rows: 8,
       },
       defaultValue: `Rules:
-    - Only translate the values, never the keys
-    - Preserve the exact JSON structure
-    - Do not translate field names like 'id', 'createdAt', 'updatedAt', etc.
-    - Maintain formatting, HTML tags, and special characters
-    - Return only valid JSON without any markdown formatting or code blocks
-    - If a value is already in the target language or is a proper noun, keep it as is`,
+- Only translate the values, never the keys
+- Preserve the exact JSON structure
+- Do not translate field names like 'id', 'createdAt', 'updatedAt', etc.
+- Maintain formatting, HTML tags, and special characters
+- Return only valid JSON without any markdown formatting or code blocks
+- If a value is already in the target language or is a proper noun, keep it as is`,
       label: 'Translation Rules',
       required: true,
     },

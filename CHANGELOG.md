@@ -7,7 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.3.2] - 2025-11-20
+## [1.3.4] - 2025-11-20
+
+- Chore: cleanup and update configurations
+
+## [1.3.3] - 2025-11-20
 
 - Update repository URL in package.json to reflect correct ownership
 

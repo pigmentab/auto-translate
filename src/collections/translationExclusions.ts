@@ -5,16 +5,16 @@ export const getTranslationExclusionsCollection = (
 ): CollectionConfig => ({
   slug,
   access: {
-    create: () => true,
-    delete: () => true,
-    read: () => true,
-    update: () => true,
+    create: ({ req: { user } }) => Boolean(user),
+    delete: ({ req: { user } }) => Boolean(user),
+    read: ({ req: { user } }) => Boolean(user),
+    update: ({ req: { user } }) => Boolean(user),
   },
   admin: {
     defaultColumns: ['collectionSlug', 'documentId', 'locale', 'excludedPaths'],
     description:
       'Stores field-level translation exclusions per document and locale. Each locale can have its own set of excluded fields. There should only be ONE record per (collectionSlug, documentId, locale) combination.',
-    group: 'Settings',
+    group: 'Auto-Translate Settings',
     useAsTitle: 'collectionSlug',
   },
   fields: [

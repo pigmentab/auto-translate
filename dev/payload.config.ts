@@ -328,7 +328,6 @@ const buildConfigWithMemoryDB = async () => {
         collections: {
           posts: true,
         },
-        disabled: true,
         enableTranslationSyncByDefault: true,
       }),
     ],
