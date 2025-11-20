@@ -11,15 +11,15 @@ export const getTranslationExclusionsCollection = (
     update: () => true,
   },
   admin: {
-    defaultColumns: ['collection', 'documentId', 'locale', 'excludedPaths'],
+    defaultColumns: ['collectionSlug', 'documentId', 'locale', 'excludedPaths'],
     description:
-      'Stores field-level translation exclusions per document and locale. Each locale can have its own set of excluded fields. There should only be ONE record per (collection, documentId, locale) combination.',
+      'Stores field-level translation exclusions per document and locale. Each locale can have its own set of excluded fields. There should only be ONE record per (collectionSlug, documentId, locale) combination.',
     group: 'Settings',
-    useAsTitle: 'collection',
+    useAsTitle: 'collectionSlug',
   },
   fields: [
     {
-      name: 'collection',
+      name: 'collectionSlug',
       type: 'text',
       admin: {
         description: 'The collection this exclusion belongs to',

@@ -1,6 +1,3 @@
-/**
- * Client-side exports for the auto-translate plugin
- */
-
+export { LockTranslation } from '../components/LockTranslation/index.js'
 export { TranslationControl } from '../components/TranslationControl.js'
 export type * from '../types/index.js'

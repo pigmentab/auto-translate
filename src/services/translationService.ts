@@ -479,7 +479,7 @@ export class TranslationService {
         limit: 1,
         where: {
           and: [
-            { collection: { equals: collection } },
+            { collectionSlug: { equals: collection } },
             { documentId: { equals: documentId } },
             { locale: { equals: locale } },
           ],
@@ -707,7 +707,7 @@ export class TranslationService {
         limit: 1,
         where: {
           and: [
-            { collection: { equals: collection } },
+            { collectionSlug: { equals: collection } },
             { documentId: { equals: documentId } },
             { locale: { equals: locale } },
           ],
@@ -715,7 +715,7 @@ export class TranslationService {
       })
 
       const exclusionsData = {
-        collection,
+        collectionSlug: collection,
         documentId,
         excludedPaths: excludedPaths.map((path) => ({ path })),
         locale,

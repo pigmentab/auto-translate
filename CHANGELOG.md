@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.2] - 2025-11-20
+
+### ✨ Features
+
+- **Translation Settings Lock** - Added lock/unlock controls to prevent accidental changes to translation settings
+  - Settings are locked by default (read-only) for safety
+  - User-friendly unlock → edit → save → auto-lock workflow
+  - Prominent lock/unlock button with clear visual feedback (🔒/🔓)
+  - Automatically re-locks after saving to protect critical settings
+  - Protects system prompt, translation rules, model, temperature, and max tokens
+  - Added `LockTranslation` component with form-based access control
+  - Added `TranslationSettingsLock` component with client-side DOM manipulation
+  - Exported `LockTranslation` component via `@pigment/auto-translate/client`
+
+### 🐛 Bug Fixes
+
+- **Fixed Mongoose reserved keyword warning**
+  - Renamed `collection` field to `collectionSlug` in translation-exclusions collection
+  - Eliminates Mongoose warning: "`collection` is a reserved schema pathname"
+
+- **Fixed development seed script issues**
+  - Fixed "parseEditorState: type 'undefined' + not found" error in Lexical richText fields
+  - Added proper Lexical editor state structure with required `type: 'root'` field
+  - Seed now checks for existing posts and skips if data already exists
+  - Prevents duplicate seeding on every dev server restart
+  - To re-seed: delete all posts from admin panel and restart dev server
+
+### 🔧 Improvements
+
+- Enhanced `translation-settings` global with access control based on lock state
+  - All fields now check `lockTranslationSettings` field for edit permission
+  - Added hidden `lockTranslationSettings` checkbox field (default: true)
+  - Added `afterChange` hook to auto-lock settings after save
+  - Updated field descriptions with warning for translation rules
+
+- Improved development workflow
+  - Auto-seeding only happens once (when no posts exist)
+  - Clear logging messages show when seeding is skipped
+  - To re-seed: simply delete posts and restart server
+
+---
+
 ## [1.3.1] - 2025-11-14
 
 ### 🐛 Bug Fixes

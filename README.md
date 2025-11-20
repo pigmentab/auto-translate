@@ -8,6 +8,7 @@ A powerful auto-translation plugin for [Payload CMS](https://payloadcms.com) tha
 - 🔒 **Field-Level Exclusion**: Toggle "do not translate" on specific fields in secondary languages
 - 🎯 **Smart Translation**: Preserves excluded fields when updating default language content
 - 🔧 **Flexible Configuration**: Configure per-collection settings and global exclusions
+- 🔐 **Protected Settings**: Lock/unlock translation settings to prevent accidental changes
 - 🤖 **OpenAI Integration**: Uses GPT-4o for high-quality translations (with custom provider support)
 - 📦 **Zero UI Overhead**: Seamlessly integrates with Payload's admin panel
 - ⚡ **Performance Optimized**: 10-15x faster translation with smart extraction and deduplication
@@ -357,6 +358,19 @@ pnpm test:e2e          # Run end-to-end tests
 
 ---
 
+## 🛠️ Development
+
+The development server automatically seeds the database on first run with test data:
+- Creates a dev user (if not exists)
+- Creates test posts in the default language
+- **Only seeds when database is empty** - subsequent restarts skip seeding
+
+To re-seed the database:
+1. Delete all posts from the admin panel
+2. Restart dev server - auto-seeding will run
+
+---
+
 ## 🔒 Access Control
 
 The plugin respects Payload's access control. Translation operations run with the same permissions as the user making the update.
@@ -371,6 +385,19 @@ If you need custom access control for translation features, you can add hooks or
 - **No real-time translation**: Translation happens on save, not as you type
 - **OpenAI dependency**: Requires OpenAI API key (unless using custom provider)
 - **Cost considerations**: Each translation uses OpenAI API credits
+
+---
+
+## 📖 Additional Documentation
+
+For more detailed information, check out these guides:
+
+- **[QUICKSTART.md](./docs/QUICKSTART.md)** - Quick setup and basic usage
+- **[USAGE_GUIDE.md](./docs/USAGE_GUIDE.md)** - Detailed usage examples and best practices
+- **[ARCHITECTURE.md](./docs/ARCHITECTURE.md)** - Technical architecture and implementation details
+- **[INTEGRATION_EXAMPLES.md](./docs/INTEGRATION_EXAMPLES.md)** - Real-world integration examples
+- **[TRANSLATION_SETTINGS_LOCK.md](./docs/TRANSLATION_SETTINGS_LOCK.md)** - Lock/unlock feature for translation settings
+- **[FEATURE_SUMMARY.md](./docs/FEATURE_SUMMARY.md)** - Complete feature overview
 
 ---
 
