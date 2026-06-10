@@ -1,4 +1,4 @@
-import type { Payload } from 'payload'
+import type { CollectionSlug, GlobalSlug, Payload } from 'payload'
 
 import OpenAI from 'openai'
 
@@ -214,7 +214,7 @@ export class TranslationService {
 
     try {
       const settings = await payload.findGlobal({
-        slug: settingsSlug,
+        slug: settingsSlug as GlobalSlug,
       })
 
       if (settings) {
@@ -453,7 +453,7 @@ export class TranslationService {
    */
   getConfigExcludedFields(collection: string): string[] {
     const globalExclusions = this.config.excludeFields || []
-    const collectionConfig = this.config.collections?.[collection]
+    const collectionConfig = this.config.collections?.[collection as CollectionSlug]
 
     if (typeof collectionConfig === 'object' && collectionConfig.excludeFields) {
       return [...globalExclusions, ...collectionConfig.excludeFields]
@@ -471,7 +471,9 @@ export class TranslationService {
     documentId: string,
     locale: string,
   ): Promise<string[]> {
-    const exclusionsSlug = this.config.translationExclusionsSlug || 'translation-exclusions'
+    const exclusionsSlug = (
+      this.config.translationExclusionsSlug || 'translation-exclusions'
+    ) as CollectionSlug
 
     try {
       const result = await payload.find({
@@ -699,7 +701,9 @@ export class TranslationService {
     locale: string,
     excludedPaths: string[],
   ): Promise<void> {
-    const exclusionsSlug = this.config.translationExclusionsSlug || 'translation-exclusions'
+    const exclusionsSlug = (
+      this.config.translationExclusionsSlug || 'translation-exclusions'
+    ) as CollectionSlug
 
     try {
       const existing = await payload.find({

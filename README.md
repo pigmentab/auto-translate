@@ -401,6 +401,54 @@ For more detailed information, check out these guides:
 
 ---
 
+## 🌐 Edge Middleware (locale detection)
+
+This plugin's translation logic runs inside Payload `afterOperation` hooks on the **Node.js server** and is fully edge-compatible on the _plugin side_ — no changes are needed in the plugin itself.
+
+If your **Next.js app** needs locale-based routing (detect locale from `Accept-Language` and redirect), you can add middleware.
+
+### Next.js 16 — middleware vs proxy
+
+| Convention | Runtime | Next.js version |
+|---|---|---|
+| `middleware.ts` (legacy name, still supported) | **Edge** (default) | 15 + 16 |
+| `proxy.ts` (new name in v16) | **Node.js only** | 16 only |
+
+In Next.js 16 the `proxy` convention (Node.js runtime) is recommended, but **Edge runtime requires keeping the `middleware.ts` filename**. A ready-to-use example for both approaches is provided in `dev/middleware.ts`.
+
+### Quick example (Edge, locale detection)
+
+```ts
+// middleware.ts  (at the root of your Next.js project)
+import type { NextRequest } from 'next/server'
+import { NextResponse } from 'next/server'
+
+const LOCALES = ['sv', 'en', 'de']
+const DEFAULT_LOCALE = 'sv'
+
+export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
+  const hasLocale = LOCALES.some(
+    (l) => pathname.startsWith(`/${l}/`) || pathname === `/${l}`,
+  )
+  if (hasLocale) return NextResponse.next()
+
+  const accept = request.headers.get('accept-language') ?? ''
+  const locale = LOCALES.find((l) => accept.toLowerCase().includes(l)) ?? DEFAULT_LOCALE
+  const url = request.nextUrl.clone()
+  url.pathname = `/${locale}${pathname}`
+  return NextResponse.redirect(url)
+}
+
+export const config = {
+  matcher: ['/((?!payload|api|_next|favicon\\.ico).*)'],
+  // NOTE: do NOT add runtime: 'edge' here — it's for Route Segments, not middleware.
+  // Edge is the implicit default for middleware.ts in Next.js 16.
+}
+```
+
+---
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.

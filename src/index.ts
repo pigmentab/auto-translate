@@ -12,20 +12,76 @@ export { getTranslationSettingsGlobal } from './globals/translationSettings.js'
 export { TranslationService } from './services/translationService.js'
 export * from './types/index.js'
 
+// Fields that must never be passed as data to payload.update / payload.create
+// (Postgres/drizzle rejects them; MongoDB silently ignores them)
+const SYSTEM_FIELDS = new Set([
+  'id',
+  'createdAt',
+  'updatedAt',
+  '_status',
+  '__v',
+  'globalType',
+  'updatedBy',
+])
+
+function stripSystemFields(data: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(data)) {
+    if (!SYSTEM_FIELDS.has(key)) {
+      result[key] = value
+    }
+  }
+  return result
+}
+
+/**
+ * Strips `id` from objects that are direct elements of arrays, recursively
+ * through the data tree.  This prevents Postgres unique-constraint violations
+ * when inserting locale-specific rows into array tables (e.g. posts_content)
+ * that share a single PRIMARY KEY on `id` across all locales.
+ *
+ * Relationship objects (plain objects that are NOT direct array items) keep
+ * their `id` so that Payload can still resolve them correctly.
+ */
+function stripArrayItemIds(data: unknown): unknown {
+  if (Array.isArray(data)) {
+    return data.map((item) => {
+      if (item && typeof item === 'object' && !Array.isArray(item)) {
+        // Direct array item — strip its Payload-internal `id`
+        const { id: _id, ...rest } = item as Record<string, unknown>
+        const processed: Record<string, unknown> = {}
+        for (const [key, value] of Object.entries(rest)) {
+          processed[key] = stripArrayItemIds(value)
+        }
+        return processed
+      }
+      return stripArrayItemIds(item)
+    })
+  }
+
+  if (data && typeof data === 'object') {
+    const result: Record<string, unknown> = {}
+    for (const [key, value] of Object.entries(data as Record<string, unknown>)) {
+      result[key] = stripArrayItemIds(value)
+    }
+    return result
+  }
+
+  return data
+}
+
 export const autoTranslate =
   (pluginOptions: AutoTranslateConfig) =>
-  (config: Config): Config => {
+  (incomingConfig: Config): Config => {
+    // Create a shallow copy so we never mutate the caller's config object
+    const config: Config = { ...incomingConfig }
+
     // If the plugin is disabled, return config immediately without any modifications
     if (pluginOptions.disabled) {
       if (pluginOptions.debugging) {
         console.log('[Auto-Translate Plugin] Plugin is disabled, skipping all modifications')
       }
       return config
-    }
-
-    // Validate configuration
-    if (!config.collections) {
-      config.collections = []
     }
 
     if (!config.localization) {
@@ -53,25 +109,32 @@ export const autoTranslate =
     }
 
     // Add translation exclusions collection (only if exclusions are enabled)
+    // Use spread to avoid mutating the original array
     if (enableExclusions) {
       const exclusionsSlug = pluginOptions.translationExclusionsSlug || 'translation-exclusions'
-      config.collections.push(getTranslationExclusionsCollection(exclusionsSlug))
+      config.collections = [
+        ...(config.collections || []),
+        getTranslationExclusionsCollection(exclusionsSlug),
+      ]
+    } else {
+      config.collections = [...(config.collections || [])]
     }
 
-    // Add translation settings global
-    if (!config.globals) {
-      config.globals = []
-    }
+    // Add translation settings global using spread
     const settingsSlug = pluginOptions.translationSettingsSlug || 'translation-settings'
-    config.globals.push(getTranslationSettingsGlobal(settingsSlug))
+    config.globals = [...(config.globals || []), getTranslationSettingsGlobal(settingsSlug)]
 
     // Initialize translation service
     const translationService = new TranslationService(pluginOptions)
 
     // Configure collections with auto-translate
     if (pluginOptions.collections) {
-      for (const collectionSlug in pluginOptions.collections) {
-        const collectionConfig = pluginOptions.collections[collectionSlug]
+      for (const rawSlug in pluginOptions.collections) {
+        // Payload 3.85+ requires CollectionSlug (strict union), but for...in
+        // yields string. Cast once here and use collectionSlug throughout.
+        const collectionSlug = rawSlug as import('payload').CollectionSlug
+        const collectionConfig =
+          pluginOptions.collections[collectionSlug as keyof typeof pluginOptions.collections]
 
         // Skip if disabled
         if (
@@ -89,17 +152,20 @@ export const autoTranslate =
         }
 
         // Add translationSync field to collection
-        collection.fields.push({
-          name: 'translationSync',
-          type: 'checkbox',
-          admin: {
-            description:
-              'When enabled, changes in the default language will automatically translate to other languages',
-            position: 'sidebar',
+        collection.fields = [
+          ...collection.fields,
+          {
+            name: 'translationSync',
+            type: 'checkbox',
+            admin: {
+              description:
+                'When enabled, changes in the default language will automatically translate to other languages',
+              position: 'sidebar',
+            },
+            defaultValue: pluginOptions.enableTranslationSyncByDefault ?? true,
+            label: 'Enable Auto-Translation',
           },
-          defaultValue: pluginOptions.enableTranslationSyncByDefault ?? true,
-          label: 'Enable Auto-Translation',
-        })
+        ]
 
         // Auto-inject TranslationControl component into all localized fields
         // Only inject if exclusions are enabled (otherwise there's nothing to control)
@@ -121,8 +187,8 @@ export const autoTranslate =
         }
 
         // Main translation hook
-        collection.hooks.afterOperation.push(async ({ operation, req, result }) => {
-          // Only process create and update operations
+        const translationHook = async ({ operation, req, result }: any) => {
+          // Only process create and updateByID operations
           if (operation !== 'create' && operation !== 'updateByID') {
             if (pluginOptions.debugging) {
               req.payload.logger.error(
@@ -132,7 +198,7 @@ export const autoTranslate =
             return result
           }
 
-          // For create/update operations, result should have a id property
+          // For create/update operations, result should have an id property
           if (!result || typeof result !== 'object' || !('id' in result)) {
             if (pluginOptions.debugging) {
               req.payload.logger.error(
@@ -248,7 +314,7 @@ export const autoTranslate =
               })
 
               // Merge translated data with existing, preserving excluded fields
-              const finalData = translatedData
+              let finalData = { ...translatedData }
               if (existingDoc && allExcludedPaths.length > 0) {
                 // Preserve excluded fields from existing document
                 for (const excludedPath of allExcludedPaths) {
@@ -259,11 +325,23 @@ export const autoTranslate =
                 }
               }
 
+              // Strip system/internal fields before updating so Postgres adapter
+              // does not receive `id`, `createdAt`, `updatedAt`, etc. as data fields.
+              // MongoDB is lenient with extra fields; Postgres/drizzle raises
+              // ValidationError: The following field is invalid: id
+              //
+              // Also strip `id` from nested array items: Payload's array tables
+              // (e.g. posts_content) have a shared PRIMARY KEY on `id` across all
+              // locales, so reusing source-locale item IDs for a target locale causes
+              // a Postgres 23505 unique-constraint violation.
+              const strippedArrayIds = stripArrayItemIds(finalData)
+              const updateData = stripSystemFields(strippedArrayIds as Record<string, unknown>)
+
               // Update the document in the target locale
               await req.payload.update({
                 id: doc.id,
                 collection: collectionSlug,
-                data: finalData,
+                data: updateData,
                 locale: targetLocale,
                 // Prevent infinite loop - don't trigger hooks
                 context: {
@@ -281,14 +359,6 @@ export const autoTranslate =
               // Log detailed error information
               const errorMessage = error instanceof Error ? error.message : String(error)
               const errorStack = error instanceof Error ? error.stack : undefined
-              const errorDetails = {
-                collection: collectionSlug,
-                documentId: doc.id,
-                fromLocale: defaultLocale,
-                message: errorMessage,
-                stack: errorStack,
-                toLocale: targetLocale,
-              }
 
               req.payload.logger.error(
                 `[Auto-Translate Plugin] Error translating ${collectionSlug}:${doc.id} to ${targetLocale}:`,
@@ -311,23 +381,23 @@ export const autoTranslate =
           }
 
           return result
-        })
+        }
 
         // Prevent infinite loops - skip translation if triggered by our own update
-        const originalAfterOperationHooks = [...(collection.hooks.afterOperation || [])]
+        // Wrap ALL afterOperation hooks so the skipAutoTranslate context is checked first
+        const existingHooks = [...(collection.hooks.afterOperation || []), translationHook]
         collection.hooks.afterOperation = [
-          async (args) => {
+          async (args: any) => {
             // Skip if this update was triggered by auto-translate
-            // Context might not be available on all operations
             if ('req' in args && args.req?.context?.skipAutoTranslate) {
               return args.result
             }
 
             // Run all hooks including translation
-            for (const hook of originalAfterOperationHooks) {
-              const result = await hook(args)
-              if (result !== undefined) {
-                args.result = result
+            for (const hook of existingHooks) {
+              const hookResult = await hook(args)
+              if (hookResult !== undefined) {
+                args.result = hookResult
               }
             }
 
