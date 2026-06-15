@@ -1,10 +1,10 @@
-import type { CollectionSlug, GlobalSlug, Payload } from 'payload'
+import type { CollectionSlug, Field, GlobalSlug, Payload } from 'payload'
 
 import OpenAI from 'openai'
 
 import type { AutoTranslateConfig, TranslateOptions } from '../types/index.js'
 
-import { filterExcludedPaths } from '../utilities/fieldHelpers.js'
+import { filterExcludedPaths, overlayNonTranslatableValues } from '../utilities/fieldHelpers.js'
 
 export class TranslationService {
   private client?: OpenAI
@@ -471,9 +471,8 @@ export class TranslationService {
     documentId: string,
     locale: string,
   ): Promise<string[]> {
-    const exclusionsSlug = (
-      this.config.translationExclusionsSlug || 'translation-exclusions'
-    ) as CollectionSlug
+    const exclusionsSlug = (this.config.translationExclusionsSlug ||
+      'translation-exclusions') as CollectionSlug
 
     try {
       const result = await payload.find({
@@ -518,13 +517,50 @@ export class TranslationService {
       payload.logger.info(`[Auto-Translate] Excluded paths: ${excludedPaths.join(', ')}`)
     }
 
-    // Use custom translator if provided
+    // Run the configured translation strategy
+    let translated: any
     if (this.config.provider?.customTranslate) {
-      return await this.config.provider.customTranslate(options)
+      // Use custom translator if provided
+      translated = await this.config.provider.customTranslate(options)
+    } else {
+      // Use OpenAI by default
+      translated = await this.translateWithOpenAI(dataToTranslate, fromLocale, toLocale, payload)
     }
 
-    // Use OpenAI by default
-    return await this.translateWithOpenAI(dataToTranslate, fromLocale, toLocale, payload)
+    // Restore canonical values for enum-backed fields (select/radio). The Postgres
+    // adapter stores these as native enum columns, so a translated option value
+    // (e.g. "narrow" -> "schmal") is rejected with `invalid input value for enum`.
+    //
+    // When `translateLocalizedFieldsOnly` is enabled, also restore every field that
+    // is not localized (directly or via a localized ancestor container) so only
+    // localized fields are translated.
+    const fields = this.getDocumentFields(payload, collection)
+    if (fields) {
+      overlayNonTranslatableValues(translated, data, fields, {
+        localizedOnly: this.config.translateLocalizedFieldsOnly === true,
+      })
+    }
+
+    return translated
+  }
+
+  /**
+   * Resolves the field schema for a collection or global slug so translation can
+   * be made schema-aware (e.g. to avoid translating enum-backed select/radio
+   * field values).
+   */
+  private getDocumentFields(payload: Payload, slug: string): Field[] | undefined {
+    const collectionConfig = (payload as any).collections?.[slug]?.config
+    if (collectionConfig && Array.isArray(collectionConfig.fields)) {
+      return collectionConfig.fields
+    }
+
+    const globalConfig = (payload.config as any)?.globals?.find((g: any) => g.slug === slug)
+    if (globalConfig && Array.isArray(globalConfig.fields)) {
+      return globalConfig.fields
+    }
+
+    return undefined
   }
 
   /**
@@ -701,9 +737,8 @@ export class TranslationService {
     locale: string,
     excludedPaths: string[],
   ): Promise<void> {
-    const exclusionsSlug = (
-      this.config.translationExclusionsSlug || 'translation-exclusions'
-    ) as CollectionSlug
+    const exclusionsSlug = (this.config.translationExclusionsSlug ||
+      'translation-exclusions') as CollectionSlug
 
     try {
       const existing = await payload.find({

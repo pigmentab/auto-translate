@@ -56,6 +56,29 @@ export type AutoTranslateConfig = {
   minStringLength?: number
 
   /**
+   * Enable compatibility with @payloadcms/plugin-nested-docs (default: true).
+   *
+   * When truthy, auto-translate will:
+   * 1. Exclude the nested-docs-managed fields (`parent` and `breadcrumbs`) from
+   *    the AI translation payload so they are never mistranslated.
+   * 2. Add a beforeChange hook that strips `id` from breadcrumb array items on
+   *    non-default-locale writes, preventing the "Value must be unique: id"
+   *    Postgres constraint error caused by nested-docs' resaveChildren hook
+   *    reusing the default-locale breadcrumb ids in secondary locales.
+   *
+   * Set to `false` to disable (if you're not using nested-docs).
+   * Pass an object to override the default field slugs used by nested-docs.
+   */
+  nestedDocs?:
+    | boolean
+    | {
+        /** Slug of the breadcrumbs array field (default: 'breadcrumbs') */
+        breadcrumbsFieldSlug?: string
+        /** Slug of the parent relationship field (default: 'parent') */
+        parentFieldSlug?: string
+      }
+
+  /**
    * Use optimized translation that extracts only translatable strings (default: true)
    * This dramatically reduces API payload size and improves translation speed for large documents
    */
@@ -75,6 +98,20 @@ export type AutoTranslateConfig = {
     timeout?: number
     type: 'custom' | 'openai'
   }
+
+  /**
+   * Only translate fields that have localization enabled (default: false).
+   *
+   * When enabled, a field is translated only if it is `localized: true` — either
+   * directly, or by inheriting localization from an ancestor container that is
+   * localized (`group`, `array`, `blocks`, or a named `tab`). Every non-localized
+   * field keeps its source value and is excluded from translation.
+   *
+   * This reflects Payload's data model: only localized fields store per-locale
+   * values, so translating a non-localized field would overwrite the single
+   * shared value across all locales.
+   */
+  translateLocalizedFieldsOnly?: boolean
 
   /**
    * Collection slug for storing translation exclusions metadata

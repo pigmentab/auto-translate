@@ -1,6 +1,6 @@
 {
   "name": "@pigment/auto-translate",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Automatic translation plugin for Payload CMS with field-level exclusion controls and performance optimizations",
   "keywords": [
     "payload",
@@ -27,18 +27,18 @@
   "type": "module",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
       "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
     "./client": {
-      "import": "./dist/exports/client.js",
       "types": "./dist/exports/client.d.ts",
+      "import": "./dist/exports/client.js",
       "default": "./dist/exports/client.js"
     },
     "./rsc": {
-      "import": "./dist/exports/rsc.js",
       "types": "./dist/exports/rsc.d.ts",
+      "import": "./dist/exports/rsc.js",
       "default": "./dist/exports/rsc.js"
     }
   },
@@ -78,6 +78,7 @@
     "@payloadcms/db-sqlite": "3.85.0",
     "@payloadcms/eslint-config": "3.28.0",
     "@payloadcms/next": "3.85.0",
+    "@payloadcms/plugin-nested-docs": "3.85.0",
     "@payloadcms/richtext-lexical": "3.85.0",
     "@payloadcms/ui": "3.85.0",
     "@playwright/test": "^1.52.0",
@@ -117,18 +118,18 @@
   "publishConfig": {
     "exports": {
       ".": {
-        "import": "./dist/index.js",
         "types": "./dist/index.d.ts",
+        "import": "./dist/index.js",
         "default": "./dist/index.js"
       },
       "./client": {
-        "import": "./dist/exports/client.js",
         "types": "./dist/exports/client.d.ts",
+        "import": "./dist/exports/client.js",
         "default": "./dist/exports/client.js"
       },
       "./rsc": {
-        "import": "./dist/exports/rsc.js",
         "types": "./dist/exports/rsc.d.ts",
+        "import": "./dist/exports/rsc.js",
         "default": "./dist/exports/rsc.js"
       }
     },
