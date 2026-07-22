@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.6.0] - 2026-07-22
+
+### Features
+
+- OpenAI model selector on Translation Settings (live model list)
+- Hide temperature for GPT-5+ / o-series models (API rejects custom temperature)
+
+### Fixes
+
+- Skip sending custom temperature for models that do not support it
+
+---
+
 ## [1.3.4] - 2025-11-20
 
 - Chore: cleanup and update configurations

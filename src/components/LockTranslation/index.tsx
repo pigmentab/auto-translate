@@ -19,12 +19,11 @@ export const LockTranslation: React.FC = () => {
   const isLocked = Boolean(lockField?.value ?? true)
   const [isLoading, setIsLoading] = useState(false)
 
-  // Apply lock state to fields by directly manipulating their disabled state
+  // Model select uses form lock state in OpenAiModelField (react-select).
   const applyLockStateToFields = useCallback((locked: boolean) => {
-    const fieldsToLock = ['systemPrompt', 'translationRules', 'model', 'temperature', 'maxTokens']
+    const fieldsToLock = ['systemPrompt', 'translationRules', 'temperature', 'maxTokens']
 
     fieldsToLock.forEach((fieldPath) => {
-      // Find the input/textarea elements for this field
       const inputs = document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
         `[name="${fieldPath}"], textarea[id*="${fieldPath}"], input[id*="${fieldPath}"]`,
       )

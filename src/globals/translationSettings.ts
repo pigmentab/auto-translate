@@ -1,5 +1,7 @@
 import type { GlobalConfig } from 'payload'
 
+import { listOpenAiModelsEndpoint, supportsCustomTemperature } from '../endpoints/listOpenAiModels.js'
+
 export const getTranslationSettingsGlobal = (
   slug: string = 'translation-settings',
 ): GlobalConfig => ({
@@ -8,6 +10,7 @@ export const getTranslationSettingsGlobal = (
     description: 'Configure translation settings including the system prompt and model parameters',
     group: 'Auto-Translate Settings',
   },
+  endpoints: [listOpenAiModelsEndpoint],
   fields: [
     {
       name: 'settingsLock',
@@ -79,7 +82,10 @@ export const getTranslationSettingsGlobal = (
         },
       },
       admin: {
-        description: 'The OpenAI model to use for translations (e.g., gpt-4o, gpt-4o-mini)',
+        components: {
+          Field: '@pigment/auto-translate/client#OpenAiModelField',
+        },
+        description: 'The OpenAI model to use for translations',
       },
       defaultValue: 'gpt-4o',
       label: 'Model',
@@ -96,8 +102,12 @@ export const getTranslationSettingsGlobal = (
       },
       admin: {
         description:
-          'Controls randomness in translation (0.0-2.0). Lower values are more deterministic.',
+          'Controls randomness in translation (0.0-2.0). Lower values are more deterministic. Not applied for GPT-5+ or o-series models.',
         step: 0.1,
+        condition: (_data, siblingData) => {
+          const model = typeof siblingData?.model === 'string' ? siblingData.model : ''
+          return supportsCustomTemperature(model)
+        },
       },
       defaultValue: 0.3,
       label: 'Temperature',

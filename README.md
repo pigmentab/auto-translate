@@ -9,7 +9,7 @@ A powerful auto-translation plugin for [Payload CMS](https://payloadcms.com) tha
 - 🎯 **Smart Translation**: Preserves excluded fields when updating default language content
 - 🔧 **Flexible Configuration**: Configure per-collection settings and global exclusions
 - 🔐 **Protected Settings**: Lock/unlock translation settings to prevent accidental changes
-- 🤖 **OpenAI Integration**: Uses GPT-4o for high-quality translations (with custom provider support)
+- 🤖 **OpenAI Integration**: Translate with OpenAI (model selectable in Translation Settings)
 - 📦 **Zero UI Overhead**: Seamlessly integrates with Payload's admin panel
 - ⚡ **Performance Optimized**: 10-15x faster translation with smart extraction and deduplication
 
@@ -75,6 +75,16 @@ OPENAI_BASE_URL=https://api.openai.com/v1
 
 > **⚠️ Important:** Restart your server after updating `.env` or plugin settings.
 
+### Translation Settings (Admin)
+
+After install, open **Auto-Translate Settings → Translation Settings** in the Payload admin:
+
+- **Model** — live OpenAI model dropdown (requires `OPENAI_API_KEY`). This value is what translation calls use.
+- **Temperature** — hidden for GPT-5+ / o-series (those models reject custom temperature).
+- **System prompt / rules / max tokens** — editable after unlocking settings.
+
+`provider.model` in plugin config is only a fallback when the global has no model set.
+
 ---
 
 ## 🔧 Advanced Configuration
@@ -103,7 +113,8 @@ export default buildConfig({
       // Optional: Translation provider settings
       provider: {
         type: 'openai', // or 'custom'
-        model: 'gpt-4o', // OpenAI model to use
+        // Fallback only — prefer Admin → Translation Settings → Model
+        model: 'gpt-4o',
         apiKey: process.env.OPENAI_API_KEY,
         baseURL: process.env.OPENAI_BASE_URL,
 

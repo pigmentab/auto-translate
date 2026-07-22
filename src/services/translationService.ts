@@ -4,6 +4,7 @@ import OpenAI from 'openai'
 
 import type { AutoTranslateConfig, TranslateOptions } from '../types/index.js'
 
+import { supportsCustomTemperature } from '../endpoints/listOpenAiModels.js'
 import { filterExcludedPaths, overlayNonTranslatableValues } from '../utilities/fieldHelpers.js'
 
 export class TranslationService {
@@ -412,25 +413,23 @@ export class TranslationService {
 
       const systemMessage = `${systemPrompt}\n\n${settings.translationRules}`
 
-      const requestParams: any = {
+      const requestParams = {
         messages: [
           {
             content: systemMessage,
-            role: 'system',
+            role: 'system' as const,
           },
           {
             content: JSON.stringify(data, null, 2),
-            role: 'user',
+            role: 'user' as const,
           },
         ],
         model: settings.model,
-        response_format: { type: 'json_object' },
-        temperature: settings.temperature,
-      }
-
-      // Add maxTokens if specified
-      if (settings.maxTokens) {
-        requestParams.max_tokens = settings.maxTokens
+        response_format: { type: 'json_object' as const },
+        ...(supportsCustomTemperature(settings.model)
+          ? { temperature: settings.temperature }
+          : {}),
+        ...(settings.maxTokens ? { max_tokens: settings.maxTokens } : {}),
       }
 
       const response = await client.chat.completions.create(requestParams, { timeout })
@@ -645,25 +644,23 @@ export class TranslationService {
 
       const systemMessage = `${systemPrompt}\n\n${settings.translationRules}`
 
-      const requestParams: any = {
+      const requestParams = {
         messages: [
           {
             content: systemMessage,
-            role: 'system',
+            role: 'system' as const,
           },
           {
             content: JSON.stringify(stringsToTranslate, null, 2),
-            role: 'user',
+            role: 'user' as const,
           },
         ],
         model: settings.model,
-        response_format: { type: 'json_object' },
-        temperature: settings.temperature,
-      }
-
-      // Add maxTokens if specified
-      if (settings.maxTokens) {
-        requestParams.max_tokens = settings.maxTokens
+        response_format: { type: 'json_object' as const },
+        ...(supportsCustomTemperature(settings.model)
+          ? { temperature: settings.temperature }
+          : {}),
+        ...(settings.maxTokens ? { max_tokens: settings.maxTokens } : {}),
       }
 
       const response = await client.chat.completions.create(requestParams, { timeout })
