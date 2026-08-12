@@ -4,7 +4,7 @@ import type { TextFieldClientComponent, OptionObject } from 'payload'
 import { FieldDescription, FieldLabel, SelectInput, useField, useFormFields } from '@payloadcms/ui'
 import React, { useEffect, useMemo, useState } from 'react'
 
-const MODELS_URL = '/payload/api/globals/translation-settings/openai-models'
+const MODELS_URL = '/api/globals/translation-settings/openai-models'
 
 export const OpenAiModelField: TextFieldClientComponent = ({ field, path, readOnly }) => {
   const { value, setValue, showError, errorMessage } = useField<string>({ path })

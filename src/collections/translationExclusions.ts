@@ -5,10 +5,84 @@ export const getTranslationExclusionsCollection = (
 ): CollectionConfig => ({
   slug,
   access: {
-    create: ({ req: { user } }) => Boolean(user),
-    delete: ({ req: { user } }) => Boolean(user),
-    read: ({ req: { user } }) => Boolean(user),
-    update: ({ req: { user } }) => Boolean(user),
+    create: async ({ data, req }) => {
+      if (!req.user || !data?.collectionSlug || !data?.documentId) {
+        return false
+      }
+      try {
+        await req.payload.findByID({
+          id: data.documentId,
+          collection: data.collectionSlug,
+          overrideAccess: false,
+          req,
+        })
+        return true
+      } catch {
+        return false
+      }
+    },
+    delete: async ({ id, req }) => {
+      if (!req.user || !id) {
+        return false
+      }
+      try {
+        const exclusion = await req.payload.findByID({
+          id,
+          collection: slug,
+          req,
+        })
+        await req.payload.findByID({
+          id: exclusion.documentId,
+          collection: exclusion.collectionSlug,
+          overrideAccess: false,
+          req,
+        })
+        return true
+      } catch {
+        return false
+      }
+    },
+    read: async ({ req }) => {
+      if (!req.user) {
+        return false
+      }
+      const allowedSlugs: string[] = []
+      for (const collectionConfig of req.payload.config.collections) {
+        try {
+          const readAccess = collectionConfig.access?.read
+          const allowed = typeof readAccess === 'function' ? await readAccess({ req }) : true
+          if (allowed) {
+            allowedSlugs.push(collectionConfig.slug)
+          }
+        } catch {
+          // Deny collections whose own access check throws
+        }
+      }
+      return { collectionSlug: { in: allowedSlugs } }
+    },
+    update: async ({ id, data, req }) => {
+      if (!req.user || !id) {
+        return false
+      }
+      try {
+        const exclusion = await req.payload.findByID({
+          id,
+          collection: slug,
+          req,
+        })
+        const targetCollectionSlug = data?.collectionSlug ?? exclusion.collectionSlug
+        const targetDocumentId = data?.documentId ?? exclusion.documentId
+        await req.payload.findByID({
+          id: targetDocumentId,
+          collection: targetCollectionSlug,
+          overrideAccess: false,
+          req,
+        })
+        return true
+      } catch {
+        return false
+      }
+    },
   },
   admin: {
     defaultColumns: ['collectionSlug', 'documentId', 'locale', 'excludedPaths'],

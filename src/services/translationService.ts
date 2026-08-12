@@ -493,10 +493,8 @@ export class TranslationService {
 
       return []
     } catch (error) {
-      if (this.config.debugging) {
-        payload.logger.error(`[Auto-Translate] Error fetching exclusions: ${error}`)
-      }
-      return []
+      payload.logger.error(`[Auto-Translate] Error fetching exclusions: ${error}`)
+      throw error
     }
   }
 
@@ -776,9 +774,8 @@ export class TranslationService {
         )
       }
     } catch (error) {
-      if (this.config.debugging) {
-        payload.logger.error(`[Auto-Translate] Error updating exclusions: ${error}`)
-      }
+      payload.logger.error(`[Auto-Translate] Error updating exclusions: ${error}`)
+      throw error
     }
   }
 }

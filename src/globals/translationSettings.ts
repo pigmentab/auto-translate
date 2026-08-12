@@ -35,8 +35,8 @@ export const getTranslationSettingsGlobal = (
       type: 'textarea',
       access: {
         read: () => true,
-        update: ({ data }) => {
-          return !data?.lockTranslationSettings
+        update: ({ doc }) => {
+          return !doc?.lockTranslationSettings
         },
       },
       admin: {
@@ -53,8 +53,8 @@ export const getTranslationSettingsGlobal = (
       type: 'textarea',
       access: {
         read: () => true,
-        update: ({ data }) => {
-          return !data?.lockTranslationSettings
+        update: ({ doc }) => {
+          return !doc?.lockTranslationSettings
         },
       },
       admin: {
@@ -77,8 +77,8 @@ export const getTranslationSettingsGlobal = (
       type: 'text',
       access: {
         read: () => true,
-        update: ({ data }) => {
-          return !data?.lockTranslationSettings
+        update: ({ doc }) => {
+          return !doc?.lockTranslationSettings
         },
       },
       admin: {
@@ -96,8 +96,8 @@ export const getTranslationSettingsGlobal = (
       type: 'number',
       access: {
         read: () => true,
-        update: ({ data }) => {
-          return !data?.lockTranslationSettings
+        update: ({ doc }) => {
+          return !doc?.lockTranslationSettings
         },
       },
       admin: {
@@ -120,8 +120,8 @@ export const getTranslationSettingsGlobal = (
       type: 'number',
       access: {
         read: () => true,
-        update: ({ data }) => {
-          return !data?.lockTranslationSettings
+        update: ({ doc }) => {
+          return !doc?.lockTranslationSettings
         },
       },
       admin: {

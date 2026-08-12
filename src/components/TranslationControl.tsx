@@ -37,17 +37,6 @@ export const TranslationControl: React.FC<TranslationControlProps> = ({
   // Use collectionSlug from props or from document context
   const effectiveCollectionSlug = collectionSlug || docCollectionSlug
 
-  // Don't show on default locale - you can only lock fields in secondary locales
-  if (currentLocale === defaultLocale) {
-    return null
-  }
-
-  // Don't show if we don't have a valid field path
-  if (!fieldPath) {
-    console.warn('[TranslationControl] No field path available')
-    return null
-  }
-
   // Load exclusion state on mount and when locale changes
   useEffect(() => {
     // Reset state when switching documents or when there's no ID (new document)
@@ -68,8 +57,8 @@ export const TranslationControl: React.FC<TranslationControlProps> = ({
         // Build query for this specific locale AND document ID
         const whereQuery = {
           and: [
-            { collection: { equals: effectiveCollectionSlug } },
-            { documentId: { equals: id } }, // This ensures we only get exclusions for THIS document
+            { collectionSlug: { equals: effectiveCollectionSlug } },
+            { documentId: { equals: String(id) } }, // This ensures we only get exclusions for THIS document
             { locale: { equals: currentLocale } },
           ],
         }
@@ -92,7 +81,7 @@ export const TranslationControl: React.FC<TranslationControlProps> = ({
             const exclusion = data.docs[0]
 
             // CRITICAL: Verify this exclusion belongs to THIS document AND locale
-            if (exclusion.locale === currentLocale && exclusion.documentId === id) {
+            if (exclusion.locale === currentLocale && exclusion.documentId === String(id)) {
               const excludedPaths = exclusion.excludedPaths?.map((item: any) => item.path) || []
               const isFieldExcluded = excludedPaths.includes(fieldPath)
 
@@ -128,7 +117,7 @@ export const TranslationControl: React.FC<TranslationControlProps> = ({
   }, [id, effectiveCollectionSlug, currentLocale, fieldPath])
 
   const toggleExclusion = useCallback(async () => {
-    if (!id || !effectiveCollectionSlug) {
+    if (!id || !effectiveCollectionSlug || !fieldPath) {
       return
     }
 
@@ -137,8 +126,8 @@ export const TranslationControl: React.FC<TranslationControlProps> = ({
       // Build query parameters for Payload REST API
       const whereQuery = {
         and: [
-          { collection: { equals: effectiveCollectionSlug } },
-          { documentId: { equals: id } },
+          { collectionSlug: { equals: effectiveCollectionSlug } },
+          { documentId: { equals: String(id) } },
           { locale: { equals: currentLocale } },
         ],
       }
@@ -174,7 +163,7 @@ export const TranslationControl: React.FC<TranslationControlProps> = ({
           const exclusion = data.docs[0]
 
           // CRITICAL: Verify this exclusion belongs to THIS document AND locale
-          if (exclusion.locale === currentLocale && exclusion.documentId === id) {
+          if (exclusion.locale === currentLocale && exclusion.documentId === String(id)) {
             existingId = exclusion.id
             currentExcludedPaths = exclusion.excludedPaths?.map((item: any) => item.path) || []
             console.log(
@@ -212,8 +201,8 @@ export const TranslationControl: React.FC<TranslationControlProps> = ({
 
       // Create the exclusion data - ALWAYS include the current locale
       const exclusionsData = {
-        collection: effectiveCollectionSlug,
-        documentId: id,
+        collectionSlug: effectiveCollectionSlug,
+        documentId: String(id),
         excludedPaths: currentExcludedPaths.map((path) => ({ path })),
         locale: currentLocale, // Ensure this is the CURRENT locale
       }
@@ -257,8 +246,9 @@ export const TranslationControl: React.FC<TranslationControlProps> = ({
     }
   }, [id, effectiveCollectionSlug, currentLocale, fieldPath, isExcluded])
 
-  // Don't show on create (no id yet)
-  if (!id) {
+  // Don't show on default locale (you can only lock fields in secondary locales),
+  // without a valid field path, or on create (no id yet)
+  if (currentLocale === defaultLocale || !fieldPath || !id) {
     return null
   }
 

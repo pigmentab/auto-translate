@@ -9,12 +9,10 @@ export function injectTranslationControls(
   parentPath: string = '',
 ): Field[] {
   return fields.map((field) => {
-    // Skip fields without names
-    if (!('name' in field)) {
-      return field
-    }
-
-    const fieldPath = parentPath ? `${parentPath}.${field.name}` : field.name
+    // Fields without names (e.g. `row`, `collapsible`) don't add a path segment,
+    // but their nested fields still need to be walked below.
+    const hasName = 'name' in field
+    const fieldPath = hasName ? (parentPath ? `${parentPath}.${field.name}` : field.name) : parentPath
 
     // Clone the field to avoid mutations
     const clonedField: any = { ...field }
@@ -28,7 +26,7 @@ export function injectTranslationControls(
       clonedField.type === 'array' ||   // Arrays are containers
       clonedField.type === 'tabs'       // Tabs are UI containers
 
-    if ('localized' in clonedField && clonedField.localized === true && !shouldSkipControl) {
+    if (hasName && 'localized' in clonedField && clonedField.localized === true && !shouldSkipControl) {
       // Initialize admin if not present
       if (!clonedField.admin) {
         clonedField.admin = {}
