@@ -31,5 +31,7 @@
     },
     "noEmit": true,
     "emitDeclarationOnly": false,
+    "module": "preserve",
+    "moduleResolution": "bundler"
   }
 }

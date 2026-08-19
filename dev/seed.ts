@@ -1,6 +1,6 @@
 import type { Payload } from 'payload'
 
-import { devUser } from './helpers/credentials.js'
+import { devUser } from './helpers/credentials'
 
 export const seed = async (payload: Payload): Promise<boolean> => {
   payload.logger.info('Seeding data...')
@@ -51,10 +51,12 @@ export const seed = async (payload: Payload): Promise<boolean> => {
           children: [
             {
               type: 'paragraph',
+              version: 1,
               children: [
                 {
                   text: 'Detta är en exempelpost för att testa auto-översättning.',
                   type: 'text',
+                  version: 1,
                 },
               ],
             },
@@ -86,6 +88,40 @@ export const seed = async (payload: Payload): Promise<boolean> => {
     payload.logger.info(`✅ English version found: "${englishPost.title}"`)
   } catch (error) {
     payload.logger.error('❌ English version not found - check OPENAI_API_KEY')
+  }
+
+  // Seed pages for nested-docs + auto-translate compatibility test
+  const { totalDocs: pageCount } = await payload.count({
+    collection: 'pages',
+  })
+
+  if (pageCount === 0) {
+    // Parent page
+    const parentPage = await payload.create({
+      collection: 'pages',
+      data: {
+        title: 'Föräldrasida',
+        slug: 'foraldrasida',
+        translationSync: true,
+      },
+      locale: 'sv',
+    })
+    payload.logger.info(`✅ Created parent page: ${parentPage.id}`)
+
+    // Child page – triggers resaveChildren on the parent, exercising the nested-docs path
+    await payload.create({
+      collection: 'pages',
+      data: {
+        title: 'Barnsida',
+        slug: 'barnsida',
+        parent: parentPage.id,
+        translationSync: true,
+      },
+      locale: 'sv',
+    })
+    payload.logger.info('✅ Created child page (nested-docs test)')
+  } else {
+    payload.logger.info(`ℹ️  Pages already seeded (${pageCount} found) - skipping`)
   }
 
   payload.logger.info('✨ Seeding completed.')

@@ -1,10 +1,8 @@
 import type { Payload } from 'payload'
 
 import config from '@payload-config'
-import { createPayloadRequest, getPayload } from 'payload'
+import { getPayload } from 'payload'
 import { afterAll, beforeAll, describe, expect, test } from 'vitest'
-
-import { customEndpointHandler } from '../src/endpoints/customEndpointHandler.js'
 
 let payload: Payload
 
@@ -16,37 +14,62 @@ beforeAll(async () => {
   payload = await getPayload({ config })
 })
 
-describe('Plugin integration tests', () => {
-  test('should query custom endpoint added by plugin', async () => {
-    const request = new Request('http://localhost:3000/api/my-plugin-endpoint', {
-      method: 'GET',
-    })
-
-    const payloadRequest = await createPayloadRequest({ config, request })
-    const response = await customEndpointHandler(payloadRequest)
-    expect(response.status).toBe(200)
-
-    const data = await response.json()
-    expect(data).toMatchObject({
-      message: 'Hello from custom endpoint',
-    })
+describe('Auto-Translate plugin integration tests', () => {
+  test('translation-exclusions collection is registered', () => {
+    expect(payload.collections['translation-exclusions']).toBeDefined()
   })
 
-  test('can create post with custom text field added by plugin', async () => {
+  test('translation-settings global is registered', () => {
+    const settingsGlobal = payload.globals.config.find(
+      (g) => g.slug === 'translation-settings',
+    )
+    expect(settingsGlobal).toBeDefined()
+  })
+
+  test('posts collection has translationSync field', () => {
+    const postsCollection = payload.config.collections.find((c) => c.slug === 'posts')
+    expect(postsCollection).toBeDefined()
+    const syncField = postsCollection?.fields.find(
+      (f) => 'name' in f && f.name === 'translationSync',
+    )
+    expect(syncField).toBeDefined()
+  })
+
+  test('can create a post in the default locale', async () => {
     const post = await payload.create({
       collection: 'posts',
       data: {
-        addedByPlugin: 'added by plugin',
+        title: 'Integration test post',
+        description: {
+          root: {
+            type: 'root',
+            children: [
+              {
+                type: 'paragraph',
+                version: 1,
+                children: [
+                  {
+                    text: 'Integration test description.',
+                    type: 'text',
+                    version: 1,
+                  },
+                ],
+              },
+            ],
+            direction: null,
+            format: '',
+            indent: 0,
+            version: 1,
+          },
+        },
+        translationSync: false,
       },
+      locale: 'sv',
     })
-    expect(post.addedByPlugin).toBe('added by plugin')
-  })
+    expect(post.id).toBeDefined()
+    expect(post.title).toBe('Integration test post')
 
-  test('plugin creates and seeds plugin-collection', async () => {
-    expect(payload.collections['plugin-collection']).toBeDefined()
-
-    const { docs } = await payload.find({ collection: 'plugin-collection' })
-
-    expect(docs).toHaveLength(1)
+    // Clean up
+    await payload.delete({ collection: 'posts', id: post.id })
   })
 })

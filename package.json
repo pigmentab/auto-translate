@@ -113,7 +113,7 @@
   },
   "engines": {
     "node": "^20.9.0 || >=22",
-    "pnpm": "^9 || ^10"
+    "pnpm": "^9 || ^10 || ^11"
   },
   "publishConfig": {
     "exports": {
@@ -135,13 +135,6 @@
     },
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "sharp",
-      "esbuild",
-      "unrs-resolver"
-    ]
   },
   "registry": "https://registry.npmjs.org/",
   "dependencies": {

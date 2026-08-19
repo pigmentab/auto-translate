@@ -71,6 +71,7 @@ export interface Config {
     pages: Page;
     'landing-pages': LandingPage;
     media: Media;
+    'translation-exclusions': TranslationExclusion;
     'payload-kv': PayloadKv;
     users: User;
     'payload-locked-documents': PayloadLockedDocument;
@@ -83,6 +84,7 @@ export interface Config {
     pages: PagesSelect<false> | PagesSelect<true>;
     'landing-pages': LandingPagesSelect<false> | LandingPagesSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
+    'translation-exclusions': TranslationExclusionsSelect<false> | TranslationExclusionsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -92,12 +94,18 @@ export interface Config {
   db: {
     defaultIDType: string;
   };
-  globals: {};
-  globalsSelect: {};
-  locale: 'sv' | 'en' | 'de';
-  user: User & {
-    collection: 'users';
+  fallbackLocale: ('false' | 'none' | 'null') | false | null | ('sv' | 'en' | 'de') | ('sv' | 'en' | 'de')[];
+  globals: {
+    'translation-settings': TranslationSetting;
   };
+  globalsSelect: {
+    'translation-settings': TranslationSettingsSelect<false> | TranslationSettingsSelect<true>;
+  };
+  locale: 'sv' | 'en' | 'de';
+  widgets: {
+    collections: CollectionsWidget;
+  };
+  user: User;
   jobs: {
     tasks: unknown;
     workflows: unknown;
@@ -150,6 +158,10 @@ export interface Post {
         id?: string | null;
       }[]
     | null;
+  /**
+   * When enabled, changes in the default language will automatically translate to other languages
+   */
+  translationSync?: boolean | null;
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
@@ -224,6 +236,19 @@ export interface Page {
         id?: string | null;
       }[]
     | null;
+  parent?: (string | null) | Page;
+  breadcrumbs?:
+    | {
+        doc?: (string | null) | Page;
+        url?: string | null;
+        label?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * When enabled, changes in the default language will automatically translate to other languages
+   */
+  translationSync?: boolean | null;
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
@@ -255,6 +280,39 @@ export interface LandingPage {
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
+}
+/**
+ * Stores field-level translation exclusions per document and locale. Each locale can have its own set of excluded fields. There should only be ONE record per (collectionSlug, documentId, locale) combination.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "translation-exclusions".
+ */
+export interface TranslationExclusion {
+  id: string;
+  /**
+   * The collection this exclusion belongs to
+   */
+  collectionSlug: string;
+  /**
+   * The ID of the document
+   */
+  documentId: string;
+  /**
+   * The locale these exclusions apply to (e.g., "en", "de", "fr")
+   */
+  locale: string;
+  /**
+   * Fields that should NOT be auto-translated in this specific locale. Each locale has its own independent set of exclusions.
+   */
+  excludedPaths: {
+    /**
+     * Field path (e.g., "title", "content.0.description")
+     */
+    path: string;
+    id?: string | null;
+  }[];
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -296,6 +354,7 @@ export interface User {
       }[]
     | null;
   password?: string | null;
+  collection: 'users';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -319,6 +378,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'media';
         value: string | Media;
+      } | null)
+    | ({
+        relationTo: 'translation-exclusions';
+        value: string | TranslationExclusion;
       } | null)
     | ({
         relationTo: 'users';
@@ -380,6 +443,7 @@ export interface PostsSelect<T extends boolean = true> {
         image?: T;
         id?: T;
       };
+  translationSync?: T;
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
@@ -425,6 +489,16 @@ export interface PagesSelect<T extends boolean = true> {
         description?: T;
         id?: T;
       };
+  parent?: T;
+  breadcrumbs?:
+    | T
+    | {
+        doc?: T;
+        url?: T;
+        label?: T;
+        id?: T;
+      };
+  translationSync?: T;
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
@@ -479,6 +553,23 @@ export interface MediaSelect<T extends boolean = true> {
   height?: T;
   focalX?: T;
   focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "translation-exclusions_select".
+ */
+export interface TranslationExclusionsSelect<T extends boolean = true> {
+  collectionSlug?: T;
+  documentId?: T;
+  locale?: T;
+  excludedPaths?:
+    | T
+    | {
+        path?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -541,6 +632,63 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   batch?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * Configure translation settings including the system prompt and model parameters
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "translation-settings".
+ */
+export interface TranslationSetting {
+  id: string;
+  lockTranslationSettings?: boolean | null;
+  /**
+   * The main instruction for the AI translator. Use {fromLocale} and {toLocale} as placeholders.
+   */
+  systemPrompt: string;
+  /**
+   * ⚠️ Do not edit if you don't know what you are doing. These rules ensure proper JSON translation behavior.
+   */
+  translationRules: string;
+  /**
+   * The OpenAI model to use for translations
+   */
+  model: string;
+  /**
+   * Controls randomness in translation (0.0-2.0). Lower values are more deterministic. Not applied for GPT-5+ or o-series models.
+   */
+  temperature?: number | null;
+  /**
+   * Maximum tokens for the response. Leave empty for automatic.
+   */
+  maxTokens?: number | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "translation-settings_select".
+ */
+export interface TranslationSettingsSelect<T extends boolean = true> {
+  lockTranslationSettings?: T;
+  systemPrompt?: T;
+  translationRules?: T;
+  model?: T;
+  temperature?: T;
+  maxTokens?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "collections_widget".
+ */
+export interface CollectionsWidget {
+  data?: {
+    [k: string]: unknown;
+  };
+  width: 'full';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

@@ -1,14 +1,14 @@
-import { mongooseAdapter } from '@payloadcms/db-mongodb'
+import { postgresAdapter } from '@payloadcms/db-postgres'
+import { nestedDocsPlugin } from '@payloadcms/plugin-nested-docs'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import { autoTranslate } from '@pigment/auto-translate'
-import { MongoMemoryReplSet } from 'mongodb-memory-server'
 import path from 'path'
 import { buildConfig } from 'payload'
 import sharp from 'sharp'
 import { fileURLToPath } from 'url'
 
-import { testEmailAdapter } from './helpers/testEmailAdapter.js'
-import { seed } from './seed.js'
+import { testEmailAdapter } from './helpers/testEmailAdapter'
+import { seed } from './seed'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -17,18 +17,7 @@ if (!process.env.ROOT_DIR) {
   process.env.ROOT_DIR = dirname
 }
 
-const buildConfigWithMemoryDB = async () => {
-  if (process.env.NODE_ENV === 'test') {
-    const memoryDB = await MongoMemoryReplSet.create({
-      replSet: {
-        count: 3,
-        dbName: 'payloadmemory',
-      },
-    })
-
-    process.env.DATABASE_URI = `${memoryDB.getUri()}&retryWrites=true`
-  }
-
+const buildConfigWithPostgres = async () => {
   return buildConfig({
     admin: {
       importMap: {
@@ -76,6 +65,9 @@ const buildConfigWithMemoryDB = async () => {
       },
       {
         slug: 'pages',
+        admin: {
+          useAsTitle: 'title',
+        },
         fields: [
           {
             name: 'title',
@@ -198,7 +190,6 @@ const buildConfigWithMemoryDB = async () => {
           },
           // Test tabs field (should NOT show control on tabs field itself)
           {
-            name: 'contentFields',
             type: 'tabs',
             tabs: [
               {
@@ -293,9 +284,21 @@ const buildConfigWithMemoryDB = async () => {
         },
       },
     ],
-    db: mongooseAdapter({
-      ensureIndexes: true,
-      url: process.env.DATABASE_URI || '',
+    db: postgresAdapter({
+      allowIDOnCreate: true,
+      blocksAsJSON: true,
+      generateSchemaOutputFile: path.resolve(dirname, 'payload-generated.schema.ts'),
+      idType: 'uuid',
+      migrationDir: path.resolve(dirname, 'migrations'),
+      pool: {
+        connectionString: process.env.DATABASE_URL || '',
+      },
+      push: false,
+      // Keep generated SQL names compact enough to avoid Postgres identifier truncation,
+      // especially with localized fields, relationships, and versions tables.
+      localesSuffix: '_l',
+      relationshipsSuffix: '_r',
+      versionsSuffix: '_v',
     }),
     editor: lexicalEditor(),
     email: testEmailAdapter,
@@ -323,12 +326,23 @@ const buildConfigWithMemoryDB = async () => {
       await seed(payload)
     },
     plugins: [
+      // Must be registered BEFORE autoTranslate so our beforeChange guard runs
+      // after nested-docs' populateBreadcrumbsBeforeChange hook.
+      nestedDocsPlugin({
+        collections: ['pages'],
+        generateURL: (docs) => docs.reduce((url, doc) => `${url}/${doc.slug}`, ''),
+      }),
       autoTranslate({
-        autoInjectUI: false, // Enable auto-injection of translation controls
+        autoInjectUI: true,
         collections: {
+          pages: true,
           posts: true,
         },
+        debugging: true,
         enableTranslationSyncByDefault: true,
+        // Tell the plugin to skip nested-docs-managed fields (parent + breadcrumbs)
+        enableExclusions: true,
+        nestedDocs: true,
       }),
     ],
     secret: process.env.PAYLOAD_SECRET || 'test-secret_key',
@@ -339,4 +353,4 @@ const buildConfigWithMemoryDB = async () => {
   })
 }
 
-export default buildConfigWithMemoryDB()
+export default buildConfigWithPostgres()

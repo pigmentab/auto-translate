@@ -48,6 +48,11 @@ export const getTranslationExclusionsCollection = (
       }
       const allowedSlugs: string[] = []
       for (const collectionConfig of req.payload.config.collections) {
+        // Skip this collection itself — its `read` access is the function
+        // currently executing, so calling it here would recurse forever.
+        if (collectionConfig.slug === slug) {
+          continue
+        }
         try {
           const readAccess = collectionConfig.access?.read
           const allowed = typeof readAccess === 'function' ? await readAccess({ req }) : true

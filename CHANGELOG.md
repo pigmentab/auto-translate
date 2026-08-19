@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Fixes
+
+- **Access control**: the `lockTranslationSettings` field and the protected Translation Settings fields
+  (system prompt, translation rules, model, temperature, max tokens) now gate updates on the persisted
+  lock state rather than the incoming request payload, closing a bypass where a single API call could
+  unlock and edit settings in one step
+- **Access control**: `translation-exclusions` records now check the requester's actual permission on the
+  referenced collection/document instead of only requiring "any authenticated user"
+- Fixed the field-lock UI (`TranslationControl`) sending/querying `collection` instead of the collection's
+  real `collectionSlug` field, which silently broke saving and loading field locks
+- Fixed `documentId` being sent as a raw (possibly numeric) value instead of a string, which could break
+  field-lock matching on collections with numeric IDs
+- Fixed a React "Rendered more hooks than during the previous render" risk in `TranslationControl` caused
+  by early returns placed between hook calls
+- Fixed `injectTranslationControls` skipping localized fields nested inside `row`/`collapsible` layout
+  fields (fields without a `name`)
+- Fixed the nested-docs `parent`/`breadcrumbs` field stripping running unconditionally instead of only
+  when those fields actually exist on the collection
+- Fixed `getExclusions`/`updateExclusions` silently swallowing database errors and failing open (treating
+  a failed lookup as "no exclusions"); errors are now logged unconditionally and surfaced to the caller
+- Fixed the OpenAI model dropdown fetching the wrong URL (`/payload/api/...` instead of `/api/...`),
+  which made it 404 on every installation
+
+### Removed
+
+- Removed the unused `TranslationSettingsLock` component (superseded by `LockTranslation`, never exported)
+  and several unused helper functions in `utilities/fieldHelpers.ts`
+- Removed the in-repo `docs/` folder of ad-hoc development notes (stale and superseded by fixes above); a
+  GitHub Wiki with maintained documentation is planned
+
+### Verified
+
+- Confirmed translation, field-level locking, and nested-docs parent/child creation behave identically on
+  both MongoDB and Postgres adapters
+
+---
+
 ## [1.6.0] - 2026-07-22
 
 ### Features

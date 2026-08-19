@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "auto-translate-dev",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["next", "dev", "dev"],
+      "port": 3000
+    }
+  ]
+}

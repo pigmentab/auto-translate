@@ -340,7 +340,7 @@ src/
 ├── components/                 # UI components
 │   └── TranslationControl.tsx  # Field-level control button
 └── endpoints/                  # Custom API endpoints
-    └── translationExclusionsEndpoint.ts
+    └── listOpenAiModels.ts     # Live OpenAI model list for Translation Settings
 ```
 
 ---
@@ -401,14 +401,21 @@ If you need custom access control for translation features, you can add hooks or
 
 ## 📖 Additional Documentation
 
-For more detailed information, check out these guides:
+More detailed guides (architecture, integration examples, advanced usage) will be published on the project's GitHub Wiki.
 
-- **[QUICKSTART.md](./docs/QUICKSTART.md)** - Quick setup and basic usage
-- **[USAGE_GUIDE.md](./docs/USAGE_GUIDE.md)** - Detailed usage examples and best practices
-- **[ARCHITECTURE.md](./docs/ARCHITECTURE.md)** - Technical architecture and implementation details
-- **[INTEGRATION_EXAMPLES.md](./docs/INTEGRATION_EXAMPLES.md)** - Real-world integration examples
-- **[TRANSLATION_SETTINGS_LOCK.md](./docs/TRANSLATION_SETTINGS_LOCK.md)** - Lock/unlock feature for translation settings
-- **[FEATURE_SUMMARY.md](./docs/FEATURE_SUMMARY.md)** - Complete feature overview
+---
+
+## 🗄️ Database Compatibility
+
+The plugin is tested against both officially-supported Payload database adapters:
+
+- **MongoDB** (`@payloadcms/db-mongodb`) — no extra setup required.
+- **Postgres** (`@payloadcms/db-postgres`) — schema changes (e.g. adding localized fields, or fields from
+  companion plugins like `@payloadcms/plugin-nested-docs`) require running `payload migrate` before those
+  fields are usable. Unlike MongoDB, Postgres will reject writes to columns that don't exist in the schema yet.
+
+Both translation and field-level locking behave identically across adapters; the only adapter-specific
+behavior is the migration step required by Postgres.
 
 ---
 
