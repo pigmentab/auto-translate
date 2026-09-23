@@ -75,14 +75,20 @@ export const getTranslationExclusionsCollection = (
           collection: slug,
           req,
         })
-        const targetCollectionSlug = data?.collectionSlug ?? exclusion.collectionSlug
-        const targetDocumentId = data?.documentId ?? exclusion.documentId
-        await req.payload.findByID({
-          id: targetDocumentId,
-          collection: targetCollectionSlug,
-          overrideAccess: false,
-          req,
-        })
+        // Check the persisted target and, if the request moves it, the new target too —
+        // otherwise a record for a doc you can't access could be repointed and taken over.
+        const targets = [
+          [exclusion.collectionSlug, exclusion.documentId],
+          [data?.collectionSlug ?? exclusion.collectionSlug, data?.documentId ?? exclusion.documentId],
+        ]
+        for (const [collection, documentId] of targets) {
+          await req.payload.findByID({
+            id: documentId,
+            collection,
+            overrideAccess: false,
+            req,
+          })
+        }
         return true
       } catch {
         return false

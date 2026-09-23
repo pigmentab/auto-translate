@@ -4,9 +4,10 @@
  */
 export async function updateLockTranslationSettingsField(
   isLocked: boolean,
+  apiURL: string,
 ): Promise<{ isLocked: boolean; success: boolean }> {
   try {
-    const response = await fetch('/api/globals/translation-settings', {
+    const response = await fetch(`${apiURL}/globals/translation-settings`, {
       body: JSON.stringify({
         lockTranslationSettings: isLocked,
       }),

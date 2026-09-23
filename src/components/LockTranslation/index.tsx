@@ -1,6 +1,6 @@
 'use client'
 
-import { useForm, useFormFields } from '@payloadcms/ui'
+import { useConfig, useForm, useFormFields } from '@payloadcms/ui'
 import React, { useCallback, useEffect, useState } from 'react'
 
 import { updateLockTranslationSettingsField } from './actions/lockTranslations.js'
@@ -16,6 +16,10 @@ import './style.css'
 export const LockTranslation: React.FC = () => {
   const lockField = useFormFields(([fields]) => fields?.lockTranslationSettings)
   const { dispatchFields } = useForm()
+  const {
+    config: { routes, serverURL },
+  } = useConfig()
+  const apiURL = `${serverURL}${routes.api}`
   const isLocked = Boolean(lockField?.value ?? true)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -53,7 +57,7 @@ export const LockTranslation: React.FC = () => {
     setIsLoading(true)
 
     try {
-      const result = await updateLockTranslationSettingsField(newLockState)
+      const result = await updateLockTranslationSettingsField(newLockState, apiURL)
 
       if (result.success) {
         // Update the lockTranslationSettings field value
@@ -72,7 +76,7 @@ export const LockTranslation: React.FC = () => {
     } finally {
       setIsLoading(false)
     }
-  }, [isLocked, dispatchFields, applyLockStateToFields])
+  }, [isLocked, dispatchFields, applyLockStateToFields, apiURL])
 
   return (
     <div className="translation-settings-lock-container">

@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
+## [1.6.1] - 2026-09-23
 
 ### Fixes
 
@@ -17,20 +17,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   unlock and edit settings in one step
 - **Access control**: `translation-exclusions` records now check the requester's actual permission on the
   referenced collection/document instead of only requiring "any authenticated user"
+- **Access control**: updating a `translation-exclusions` record checks access to both the document it
+  currently points at and any new target, so a record can no longer be repointed away from a document
+  the requester cannot access. Bulk update/delete of exclusion records (no `id`) is denied.
 - Fixed the field-lock UI (`TranslationControl`) sending/querying `collection` instead of the collection's
   real `collectionSlug` field, which silently broke saving and loading field locks
 - Fixed `documentId` being sent as a raw (possibly numeric) value instead of a string, which could break
   field-lock matching on collections with numeric IDs
+- `TranslationControl` no longer queries exclusions on the default locale, where it is hidden
 - Fixed a React "Rendered more hooks than during the previous render" risk in `TranslationControl` caused
   by early returns placed between hook calls
 - Fixed `injectTranslationControls` skipping localized fields nested inside `row`/`collapsible` layout
   fields (fields without a `name`)
-- Fixed the nested-docs `parent`/`breadcrumbs` field stripping running unconditionally instead of only
-  when those fields actually exist on the collection
 - Fixed `getExclusions`/`updateExclusions` silently swallowing database errors and failing open (treating
   a failed lookup as "no exclusions"); errors are now logged unconditionally and surfaced to the caller
-- Fixed the OpenAI model dropdown fetching the wrong URL (`/payload/api/...` instead of `/api/...`),
-  which made it 404 on every installation
+- Admin UI requests (OpenAI model dropdown, field-lock toggle, settings lock) now build their URLs from
+  the app's `serverURL` + `routes.api` instead of a hardcoded path, so they work with custom API routes
+  such as `routes.api: '/payload/api'` (previously the model dropdown only worked on `/payload/api` and
+  the field-lock/settings-lock calls only on `/api`)
 
 ### Removed
 
@@ -39,8 +43,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed the in-repo `docs/` folder of ad-hoc development notes (stale and superseded by fixes above); a
   GitHub Wiki with maintained documentation is planned
 
+### Development
+
+- Dev/test environment upgraded to Payload 3.90.1 (all `@payloadcms/*` in lockstep) and Next.js 16.3.5
+  (Payload 3.90 requires Next `>=16.3.3`). Added a dev migration for Payload 3.90's
+  `users.reset_password_requested_at` column and the pending `translation_settings.temperature` nullability
+  change. Peer dependency stays `payload@^3.85.0`; the plugin uses no APIs changed by 3.86–3.90.
+
 ### Verified
 
+- Integration tests pass and the admin builds against Payload 3.90.1 / Next.js 16.3.5
 - Confirmed translation, field-level locking, and nested-docs parent/child creation behave identically on
   both MongoDB and Postgres adapters
 

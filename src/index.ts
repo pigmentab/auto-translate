@@ -204,17 +204,6 @@ export const autoTranslate =
               f.type === 'array',
           )
 
-        // Determine whether this collection actually has a parent relationship
-        // field (added by nestedDocsPlugin or manually).
-        const hasParentField =
-          nestedDocsFieldSlugs !== null &&
-          collection.fields.some(
-            (f) =>
-              'name' in f &&
-              f.name === nestedDocsFieldSlugs.parentSlug &&
-              f.type === 'relationship',
-          )
-
         if (hasBreadcrumbsField && nestedDocsFieldSlugs) {
           const { breadcrumbsSlug } = nestedDocsFieldSlugs
 
@@ -428,10 +417,8 @@ export const autoTranslate =
               // Remove nested-docs-managed fields from the update payload entirely.
               // They were already excluded from translation, but defensively delete them
               // here too so a future refactor cannot accidentally re-introduce them.
-              if (hasParentField && nestedDocsFieldSlugs) {
+              if (nestedDocsFieldSlugs) {
                 delete updateData[nestedDocsFieldSlugs.parentSlug]
-              }
-              if (hasBreadcrumbsField && nestedDocsFieldSlugs) {
                 delete updateData[nestedDocsFieldSlugs.breadcrumbsSlug]
               }
 

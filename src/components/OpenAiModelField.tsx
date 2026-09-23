@@ -1,13 +1,22 @@
 'use client'
 
 import type { TextFieldClientComponent, OptionObject } from 'payload'
-import { FieldDescription, FieldLabel, SelectInput, useField, useFormFields } from '@payloadcms/ui'
+import {
+  FieldDescription,
+  FieldLabel,
+  SelectInput,
+  useConfig,
+  useField,
+  useFormFields,
+} from '@payloadcms/ui'
 import React, { useEffect, useMemo, useState } from 'react'
-
-const MODELS_URL = '/api/globals/translation-settings/openai-models'
 
 export const OpenAiModelField: TextFieldClientComponent = ({ field, path, readOnly }) => {
   const { value, setValue, showError, errorMessage } = useField<string>({ path })
+  const {
+    config: { routes, serverURL },
+  } = useConfig()
+  const modelsURL = `${serverURL}${routes.api}/globals/translation-settings/openai-models`
   const lockField = useFormFields(([fields]) => fields?.lockTranslationSettings)
   const isLocked = lockField === undefined ? Boolean(readOnly) : Boolean(lockField.value)
   const [options, setOptions] = useState<OptionObject[]>([])
@@ -21,7 +30,7 @@ export const OpenAiModelField: TextFieldClientComponent = ({ field, path, readOn
       setLoading(true)
       setLoadError(null)
       try {
-        const res = await fetch(MODELS_URL, {
+        const res = await fetch(modelsURL, {
           credentials: 'include',
           signal: controller.signal,
         })
@@ -40,7 +49,7 @@ export const OpenAiModelField: TextFieldClientComponent = ({ field, path, readOn
 
     void load()
     return () => controller.abort()
-  }, [])
+  }, [modelsURL])
 
   const optionsWithCurrent = useMemo(() => {
     if (!value || options.some((option) => option.value === value)) return options

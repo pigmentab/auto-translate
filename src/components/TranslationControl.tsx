@@ -1,6 +1,6 @@
 'use client'
 
-import { useDocumentInfo, useLocale } from '@payloadcms/ui'
+import { useConfig, useDocumentInfo, useLocale } from '@payloadcms/ui'
 import React, { useCallback, useEffect, useState } from 'react'
 
 import './TranslationControl.css'
@@ -31,6 +31,10 @@ export const TranslationControl: React.FC<TranslationControlProps> = ({
   const fieldPath = payloadPath || clientFieldPath
   const { id, collectionSlug: docCollectionSlug } = useDocumentInfo()
   const { code: currentLocale } = useLocale()
+  const {
+    config: { routes, serverURL },
+  } = useConfig()
+  const exclusionsURL = `${serverURL}${routes.api}/translation-exclusions`
   const [isExcluded, setIsExcluded] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -39,8 +43,9 @@ export const TranslationControl: React.FC<TranslationControlProps> = ({
 
   // Load exclusion state on mount and when locale changes
   useEffect(() => {
-    // Reset state when switching documents or when there's no ID (new document)
-    if (!id || !effectiveCollectionSlug) {
+    // Reset state when switching documents, on create (no ID), or on the default
+    // locale where the control is hidden anyway
+    if (!id || !effectiveCollectionSlug || currentLocale === defaultLocale) {
       setIsExcluded(false) // Reset to default state
       return
     }
@@ -68,7 +73,7 @@ export const TranslationControl: React.FC<TranslationControlProps> = ({
           where: JSON.stringify(whereQuery),
         }).toString()
 
-        const fullUrl = `/api/translation-exclusions?${queryString}`
+        const fullUrl = `${exclusionsURL}?${queryString}`
         console.log('[TranslationControl] Query URL:', fullUrl)
         console.log('[TranslationControl] Where clause:', whereQuery)
 
@@ -114,7 +119,7 @@ export const TranslationControl: React.FC<TranslationControlProps> = ({
     }
 
     loadExclusionState()
-  }, [id, effectiveCollectionSlug, currentLocale, fieldPath])
+  }, [id, effectiveCollectionSlug, currentLocale, defaultLocale, fieldPath, exclusionsURL])
 
   const toggleExclusion = useCallback(async () => {
     if (!id || !effectiveCollectionSlug || !fieldPath) {
@@ -146,7 +151,7 @@ export const TranslationControl: React.FC<TranslationControlProps> = ({
         where: JSON.stringify(whereQuery),
       }).toString()
 
-      const fullUrl = `/api/translation-exclusions?${queryString}`
+      const fullUrl = `${exclusionsURL}?${queryString}`
       console.log('[TranslationControl] Toggle - Query URL:', fullUrl)
       console.log('[TranslationControl] Toggle - Where clause:', whereQuery)
 
@@ -211,14 +216,14 @@ export const TranslationControl: React.FC<TranslationControlProps> = ({
 
       // Update or create record using Payload's REST API
       const saveResponse = existingId
-        ? await fetch(`/api/translation-exclusions/${existingId}`, {
+        ? await fetch(`${exclusionsURL}/${existingId}`, {
             body: JSON.stringify(exclusionsData),
             headers: {
               'Content-Type': 'application/json',
             },
             method: 'PATCH',
           })
-        : await fetch('/api/translation-exclusions', {
+        : await fetch(exclusionsURL, {
             body: JSON.stringify(exclusionsData),
             headers: {
               'Content-Type': 'application/json',
@@ -242,7 +247,7 @@ export const TranslationControl: React.FC<TranslationControlProps> = ({
     } finally {
       setIsLoading(false)
     }
-  }, [id, effectiveCollectionSlug, currentLocale, fieldPath, isExcluded])
+  }, [id, effectiveCollectionSlug, currentLocale, fieldPath, isExcluded, exclusionsURL])
 
   // Don't show on default locale (you can only lock fields in secondary locales),
   // without a valid field path, or on create (no id yet)
