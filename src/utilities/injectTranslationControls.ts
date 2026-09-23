@@ -7,6 +7,11 @@ export function injectTranslationControls(
   fields: Field[],
   defaultLocale: string,
   parentPath: string = '',
+  // Localization inherited from an ancestor container (group/array/blocks/
+  // named tab) that has `localized: true`. Payload cascades localization to
+  // every nested field, so a field can be localized without setting the flag
+  // itself.
+  inheritedLocalized: boolean = false,
 ): Field[] {
   return fields.map((field) => {
     // Fields without names (e.g. `row`, `collapsible`) don't add a path segment,
@@ -26,7 +31,9 @@ export function injectTranslationControls(
       clonedField.type === 'array' ||   // Arrays are containers
       clonedField.type === 'tabs'       // Tabs are UI containers
 
-    if (hasName && 'localized' in clonedField && clonedField.localized === true && !shouldSkipControl) {
+    const isLocalized = inheritedLocalized || clonedField.localized === true
+
+    if (hasName && isLocalized && !shouldSkipControl) {
       // Initialize admin if not present
       if (!clonedField.admin) {
         clonedField.admin = {}
@@ -66,9 +73,14 @@ export function injectTranslationControls(
       }
     }
 
-    // Recursively inject into nested fields
+    // Recursively inject into nested fields, cascading localization to children
     if ('fields' in clonedField && Array.isArray(clonedField.fields)) {
-      clonedField.fields = injectTranslationControls(clonedField.fields, defaultLocale, fieldPath)
+      clonedField.fields = injectTranslationControls(
+        clonedField.fields,
+        defaultLocale,
+        fieldPath,
+        isLocalized,
+      )
     }
 
     // Recursively inject into tabs
@@ -80,13 +92,15 @@ export function injectTranslationControls(
         if (tab.fields) {
           // If the tab has a name, use it as the path segment
           // Otherwise, use the parent path (tabs field itself doesn't create a path)
-          const tabPath = tab.name 
+          const tabPath = tab.name
             ? (parentPath ? `${parentPath}.${tab.name}` : tab.name)
             : parentPath
-          
+
+          const tabLocalized = isLocalized || tab.localized === true
+
           return {
             ...tab,
-            fields: injectTranslationControls(tab.fields, defaultLocale, tabPath),
+            fields: injectTranslationControls(tab.fields, defaultLocale, tabPath, tabLocalized),
           }
         }
         return tab
@@ -99,7 +113,7 @@ export function injectTranslationControls(
         if (block.fields) {
           return {
             ...block,
-            fields: injectTranslationControls(block.fields, defaultLocale, fieldPath),
+            fields: injectTranslationControls(block.fields, defaultLocale, fieldPath, isLocalized),
           }
         }
         return block

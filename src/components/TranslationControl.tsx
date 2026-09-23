@@ -210,34 +210,32 @@ export const TranslationControl: React.FC<TranslationControlProps> = ({
       console.log('[TranslationControl] Saving exclusions:', exclusionsData)
 
       // Update or create record using Payload's REST API
-      if (existingId) {
-        const updateResponse = await fetch(`/api/translation-exclusions/${existingId}`, {
-          body: JSON.stringify(exclusionsData),
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          method: 'PATCH',
-        })
+      const saveResponse = existingId
+        ? await fetch(`/api/translation-exclusions/${existingId}`, {
+            body: JSON.stringify(exclusionsData),
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            method: 'PATCH',
+          })
+        : await fetch('/api/translation-exclusions', {
+            body: JSON.stringify(exclusionsData),
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            method: 'POST',
+          })
 
-        if (updateResponse.ok) {
-          const result = await updateResponse.json()
-          console.log('[TranslationControl] Updated exclusions:', result.doc)
-        }
-      } else {
-        const createResponse = await fetch('/api/translation-exclusions', {
-          body: JSON.stringify(exclusionsData),
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          method: 'POST',
-        })
-
-        if (createResponse.ok) {
-          const result = await createResponse.json()
-          console.log('[TranslationControl] Created exclusions:', result.doc)
-        }
+      if (!saveResponse.ok) {
+        const errorBody = await saveResponse.text()
+        throw new Error(`Save failed (${saveResponse.status}): ${errorBody}`)
       }
 
+      const result = await saveResponse.json()
+      console.log('[TranslationControl] Saved exclusions:', result.doc)
+
+      // Only flip the displayed state once the save is confirmed — otherwise
+      // the button would show "Locked" for a field that was never persisted.
       setIsExcluded(!isExcluded)
     } catch (error) {
       console.error('[TranslationControl] Error toggling exclusion:', error)
