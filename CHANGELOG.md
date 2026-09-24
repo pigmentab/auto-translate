@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.6.2] - 2026-09-24
+
+### Fixes
+
+- `relationship` and `upload` fields are no longer sent to the translator. Translating a `relationTo`
+  value (e.g. "pages" to "sidor") pointed the field at a collection that does not exist and crashed the
+  admin.
+- Values at paths ending in `relationTo` or `blockType` are skipped, so polymorphic relationship targets
+  and block slugs keep their original values
+- Relative URLs and paths such as `/about-us` are no longer translated. Previously only absolute
+  `http(s)://` URLs and media file paths were skipped, so internal link URLs could come back translated.
+  Any string that starts with `/` and contains no whitespace is now left as is.
+
+---
+
 ## [1.6.1] - 2026-09-23
 
 ### Fixes

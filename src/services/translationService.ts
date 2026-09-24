@@ -330,6 +330,11 @@ export class TranslationService {
       return true
     }
 
+    // Skip relative URLs/paths (e.g. link urls like "/about-us")
+    if (/^\/\S*$/.test(str)) {
+      return true
+    }
+
     // Skip file paths
     if (/^\/\S*\.(jpg|jpeg|png|gif|webp|svg|pdf|mp4|webm|ogg|mp3|wav)$/i.test(str)) {
       return true
@@ -378,6 +383,9 @@ export class TranslationService {
 
     // Skip paths ending with id, createdAt, updatedAt, etc.
     const pathLower = path.toLowerCase()
+    if (pathLower.endsWith('relationto') || pathLower.endsWith('blocktype')) {
+      return true
+    }
     if (
       pathLower.endsWith('id') ||
       pathLower.endsWith('_id') ||

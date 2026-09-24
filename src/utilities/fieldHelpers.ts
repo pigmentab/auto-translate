@@ -7,7 +7,14 @@ import type { Field } from 'payload'
  * invalid enum value and makes the locale-row INSERT fail with
  * `invalid input value for enum`. These must never be sent to the translator.
  */
-const NON_TRANSLATABLE_FIELD_TYPES = new Set(['select', 'radio'])
+const NON_TRANSLATABLE_FIELD_TYPES = new Set([
+  'select',
+  'radio',
+  // References: translating `relationTo` (e.g. "pages" -> "sidor") points at a
+  // collection that does not exist and crashes the admin.
+  'relationship',
+  'upload',
+])
 
 /**
  * Container field types that hold nested fields rather than a leaf value.
