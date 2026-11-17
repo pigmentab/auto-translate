@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.6.3] - 2026-11-17
+
+### Fixes
+
+- Skip custom `temperature` for GPT-6+ models (e.g. `gpt-6.1-terra`, `gpt-6-astra`), not only GPT-5+.
+  Those models default to `reasoning_effort: medium` and return 400 when a non-default temperature is sent,
+  which broke Auto Translate even though the model appeared in the settings dropdown.
+
+---
+
 ## [1.6.2] - 2026-09-24
 
 ### Fixes

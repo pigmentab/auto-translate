@@ -22,11 +22,14 @@ export function isChatCapableModel(id: string): boolean {
   return /^(gpt-|o[1-9]|chatgpt-)/i.test(id)
 }
 
-/** GPT-5+ and o-series only accept the default temperature (1). */
+/**
+ * GPT-5+ / GPT-6+ and o-series reject custom temperature at default reasoning effort.
+ * Sending other values returns 400 from OpenAI.
+ */
 export function supportsCustomTemperature(model: string): boolean {
   if (!model) return true
   if (/^o[1-9]/i.test(model)) return false
-  if (/^gpt-5/i.test(model)) return false
+  if (/^gpt-([5-9]|\d{2,})/i.test(model)) return false
   return true
 }
 
