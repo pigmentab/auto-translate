@@ -102,7 +102,7 @@ export const getTranslationSettingsGlobal = (
       },
       admin: {
         description:
-          'Controls randomness in translation (0.0-2.0). Lower values are more deterministic. Not applied for GPT-5+ or o-series models.',
+          'Controls randomness in translation (0.0-2.0). Lower values are more deterministic. Not applied for GPT-5+/GPT-6+ or o-series models.',
         step: 0.1,
         condition: (_data, siblingData) => {
           const model = typeof siblingData?.model === 'string' ? siblingData.model : ''

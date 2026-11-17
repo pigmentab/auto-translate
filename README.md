@@ -80,7 +80,7 @@ OPENAI_BASE_URL=https://api.openai.com/v1
 After install, open **Auto-Translate Settings → Translation Settings** in the Payload admin:
 
 - **Model** — live OpenAI model dropdown (requires `OPENAI_API_KEY`). This value is what translation calls use.
-- **Temperature** — hidden for GPT-5+ / o-series (those models reject custom temperature).
+- **Temperature** — hidden for GPT-5+/GPT-6+ / o-series (those models reject custom temperature at default reasoning effort).
 - **System prompt / rules / max tokens** — editable after unlocking settings.
 
 `provider.model` in plugin config is only a fallback when the global has no model set.
