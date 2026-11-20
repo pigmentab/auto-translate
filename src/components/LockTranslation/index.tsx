@@ -1,28 +1,21 @@
 'use client'
 
-import { useConfig, useForm, useFormFields, useRouteCache } from '@payloadcms/ui'
-import React, { useCallback, useEffect, useState } from 'react'
+import { useForm, useFormFields } from '@payloadcms/ui'
+import React, { useCallback, useEffect } from 'react'
 
-import { updateLockTranslationSettingsField } from './actions/lockTranslations.js'
 import './style.css'
 
 /**
- * Component that provides lock/unlock functionality for translation settings
- * - Fields are locked by default (read-only)
- * - User must click "Unlock" to edit
- * - After saving, fields automatically lock again
- * - Updates the hidden lockTranslationSettings checkbox field to enable server-side access control
+ * Lock/unlock Translation Settings in the form only.
+ * Do not POST unlock to the API — that bumps updatedAt and trips Payload's
+ * "Document modified" stale modal on the next keystroke. Field access allows
+ * the save when lockTranslationSettings is false in the request; beforeChange
+ * re-locks on the same write.
  */
 export const LockTranslation: React.FC = () => {
   const lockField = useFormFields(([fields]) => fields?.lockTranslationSettings)
   const { dispatchFields } = useForm()
-  const {
-    config: { routes, serverURL },
-  } = useConfig()
-  const { clearRouteCache } = useRouteCache()
-  const apiURL = `${serverURL}${routes.api}`
   const isLocked = Boolean(lockField?.value ?? true)
-  const [isLoading, setIsLoading] = useState(false)
 
   // Model select uses form lock state in OpenAiModelField (react-select).
   const applyLockStateToFields = useCallback((locked: boolean) => {
@@ -43,9 +36,7 @@ export const LockTranslation: React.FC = () => {
     })
   }, [])
 
-  // Apply initial lock state when component mounts or lock state changes
   useEffect(() => {
-    // Small delay to ensure form fields are rendered
     const timer = setTimeout(() => {
       applyLockStateToFields(isLocked)
     }, 100)
@@ -53,57 +44,33 @@ export const LockTranslation: React.FC = () => {
     return () => clearTimeout(timer)
   }, [isLocked, applyLockStateToFields])
 
-  const toggleLock = useCallback(async () => {
+  const toggleLock = useCallback(() => {
     const newLockState = !isLocked
-    setIsLoading(true)
 
-    try {
-      const result = await updateLockTranslationSettingsField(newLockState, apiURL)
+    dispatchFields({
+      type: 'UPDATE',
+      path: 'lockTranslationSettings',
+      value: newLockState,
+    })
 
-      if (result.success) {
-        // Update the lockTranslationSettings field value
-        dispatchFields({
-          type: 'UPDATE',
-          path: 'lockTranslationSettings',
-          value: result.isLocked,
-        })
-
-        // Apply lock state to fields
-        applyLockStateToFields(result.isLocked)
-
-        // Unlock/lock POSTs the global and bumps updatedAt. Reload so Payload's
-        // stale-data check picks up the new timestamp instead of showing
-        // "Document modified" on the next edit. Avoid next/navigation so the
-        // package builds without a next peer dependency.
-        clearRouteCache()
-        window.location.reload()
-      }
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('[LockTranslation] Error:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [isLocked, dispatchFields, applyLockStateToFields, apiURL, clearRouteCache])
+    applyLockStateToFields(newLockState)
+  }, [isLocked, dispatchFields, applyLockStateToFields])
 
   return (
     <div className="translation-settings-lock-container">
       <button
         className={`translation-settings-lock-button ${isLocked ? 'locked' : 'unlocked'}`}
-        disabled={isLoading}
         onClick={toggleLock}
         title={
           isLocked
-            ? '🔒 Settings are locked to prevent accidental changes. Click to unlock and edit.'
-            : '🔓 Settings are unlocked. Click to lock after saving your changes.'
+            ? 'Settings are locked to prevent accidental changes. Click to unlock and edit.'
+            : 'Settings are unlocked. Click to lock, or save to lock automatically.'
         }
         type="button"
       >
-        <span className="translation-settings-lock-icon">
-          {isLoading ? '⏳' : isLocked ? '🔒' : '🔓'}
-        </span>
+        <span className="translation-settings-lock-icon">{isLocked ? '🔒' : '🔓'}</span>
         <span className="translation-settings-lock-label">
-          {isLoading ? 'Updating...' : isLocked ? 'Unlock Settings' : 'Lock Settings'}
+          {isLocked ? 'Unlock Settings' : 'Lock Settings'}
         </span>
       </button>
     </div>

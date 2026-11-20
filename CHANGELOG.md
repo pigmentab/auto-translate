@@ -7,14 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.6.5] - 2026-11-20
+
+### Fixes
+
+- Translation Settings "Document modified" modal: unlock is now client-only (no API write).
+  The unlock POST in 1.6.4 still bumped `updatedAt` and tripped Payload's stale check on first edit.
+  Field `update` access allows the save when the request carries `lockTranslationSettings: false`;
+  `beforeChange` re-locks on the same write.
+- Model dropdown: resolve chat/text models via [models.dev](https://models.dev) modality metadata
+  (text output, no audio) intersected with the account's OpenAI `/v1/models` list, so voice/live/realtime
+  models like `gpt-live-1` stay out without maintaining a brittle denylist.
+
+---
+
 ## [1.6.4] - 2026-11-20
 
 ### Fixes
 
-- Translation Settings no longer shows Payload's "Document modified" stale modal after unlock/edit/save.
-  Re-lock now happens in `beforeChange` on the same write (instead of a second `updateGlobal` in
-  `afterChange`), and unlock/lock refreshes the admin route so the stale-data check sees the new
-  `updatedAt`.
+- Translation Settings: re-lock in `beforeChange` instead of a second `updateGlobal` in `afterChange`.
+  Incomplete — unlock still POSTed and could show the stale modal; fixed properly in 1.6.5.
 
 ---
 

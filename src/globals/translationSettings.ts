@@ -1,6 +1,15 @@
-import type { GlobalConfig } from 'payload'
+import type { FieldAccess, GlobalConfig } from 'payload'
 
 import { listOpenAiModelsEndpoint, supportsCustomTemperature } from '../endpoints/listOpenAiModels.js'
+
+/**
+ * Settings fields stay locked in the DB until save. Unlock is client-only so we
+ * must allow the save when this request itself carries lockTranslationSettings: false.
+ */
+const canUpdateLockedSettings: FieldAccess = ({ data, doc }) => {
+  if (!doc?.lockTranslationSettings) return true
+  return data?.lockTranslationSettings === false
+}
 
 export const getTranslationSettingsGlobal = (
   slug: string = 'translation-settings',
@@ -35,9 +44,7 @@ export const getTranslationSettingsGlobal = (
       type: 'textarea',
       access: {
         read: () => true,
-        update: ({ doc }) => {
-          return !doc?.lockTranslationSettings
-        },
+        update: canUpdateLockedSettings,
       },
       admin: {
         description:
@@ -53,9 +60,7 @@ export const getTranslationSettingsGlobal = (
       type: 'textarea',
       access: {
         read: () => true,
-        update: ({ doc }) => {
-          return !doc?.lockTranslationSettings
-        },
+        update: canUpdateLockedSettings,
       },
       admin: {
         description:
@@ -77,9 +82,7 @@ export const getTranslationSettingsGlobal = (
       type: 'text',
       access: {
         read: () => true,
-        update: ({ doc }) => {
-          return !doc?.lockTranslationSettings
-        },
+        update: canUpdateLockedSettings,
       },
       admin: {
         components: {
@@ -96,9 +99,7 @@ export const getTranslationSettingsGlobal = (
       type: 'number',
       access: {
         read: () => true,
-        update: ({ doc }) => {
-          return !doc?.lockTranslationSettings
-        },
+        update: canUpdateLockedSettings,
       },
       admin: {
         description:
@@ -120,9 +121,7 @@ export const getTranslationSettingsGlobal = (
       type: 'number',
       access: {
         read: () => true,
-        update: ({ doc }) => {
-          return !doc?.lockTranslationSettings
-        },
+        update: canUpdateLockedSettings,
       },
       admin: {
         description: 'Maximum tokens for the response. Leave empty for automatic.',
@@ -132,8 +131,8 @@ export const getTranslationSettingsGlobal = (
     },
   ],
   hooks: {
-    // Re-lock in the same write as the settings save. A follow-up updateGlobal in
-    // afterChange bumps updatedAt and trips Payload's "Document modified" stale modal.
+    // Re-lock in the same write as the settings save. Unlock is client-only so a
+    // second updateGlobal is never needed (that used to trip the stale modal).
     beforeChange: [
       ({ data }) => {
         if (!data) return data
