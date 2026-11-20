@@ -1,6 +1,7 @@
 'use client'
 
-import { useConfig, useForm, useFormFields } from '@payloadcms/ui'
+import { useConfig, useForm, useFormFields, useRouteCache } from '@payloadcms/ui'
+import { useRouter } from 'next/navigation'
 import React, { useCallback, useEffect, useState } from 'react'
 
 import { updateLockTranslationSettingsField } from './actions/lockTranslations.js'
@@ -19,6 +20,8 @@ export const LockTranslation: React.FC = () => {
   const {
     config: { routes, serverURL },
   } = useConfig()
+  const { clearRouteCache } = useRouteCache()
+  const router = useRouter()
   const apiURL = `${serverURL}${routes.api}`
   const isLocked = Boolean(lockField?.value ?? true)
   const [isLoading, setIsLoading] = useState(false)
@@ -69,6 +72,12 @@ export const LockTranslation: React.FC = () => {
 
         // Apply lock state to fields
         applyLockStateToFields(result.isLocked)
+
+        // Unlock/lock POSTs the global and bumps updatedAt. Refresh so Payload's
+        // stale-data check picks up the new timestamp instead of showing
+        // "Document modified" on the next edit.
+        clearRouteCache()
+        router.refresh()
       }
     } catch (error) {
       // eslint-disable-next-line no-console
@@ -76,7 +85,14 @@ export const LockTranslation: React.FC = () => {
     } finally {
       setIsLoading(false)
     }
-  }, [isLocked, dispatchFields, applyLockStateToFields, apiURL])
+  }, [
+    isLocked,
+    dispatchFields,
+    applyLockStateToFields,
+    apiURL,
+    clearRouteCache,
+    router,
+  ])
 
   return (
     <div className="translation-settings-lock-container">
