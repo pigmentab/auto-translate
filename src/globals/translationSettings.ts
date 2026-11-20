@@ -132,16 +132,24 @@ export const getTranslationSettingsGlobal = (
     },
   ],
   hooks: {
-    afterChange: [
-      async ({ data, req }) => {
-        if (!data?.lockTranslationSettings) {
-          const result = await req.payload.updateGlobal({
-            slug: 'translation-settings',
-            data: { lockTranslationSettings: true },
-            req,
-          })
+    // Re-lock in the same write as the settings save. A follow-up updateGlobal in
+    // afterChange bumps updatedAt and trips Payload's "Document modified" stale modal.
+    beforeChange: [
+      ({ data }) => {
+        if (!data) return data
 
-          return result
+        const savingSettings =
+          data.systemPrompt !== undefined ||
+          data.translationRules !== undefined ||
+          data.model !== undefined ||
+          data.temperature !== undefined ||
+          data.maxTokens !== undefined
+
+        if (!savingSettings) return data
+
+        return {
+          ...data,
+          lockTranslationSettings: true,
         }
       },
     ],

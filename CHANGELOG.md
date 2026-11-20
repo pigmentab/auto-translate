@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.6.4] - 2026-11-20
+
+### Fixes
+
+- Translation Settings no longer shows Payload's "Document modified" stale modal after unlock/edit/save.
+  Re-lock now happens in `beforeChange` on the same write (instead of a second `updateGlobal` in
+  `afterChange`), and unlock/lock refreshes the admin route so the stale-data check sees the new
+  `updatedAt`.
+
+---
+
 ## [1.6.3] - 2026-11-17
 
 ### Fixes
